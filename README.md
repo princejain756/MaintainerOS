@@ -6,7 +6,7 @@ The open-source command center for healthier repositories.
 
 MaintainerOS helps open-source maintainers reduce repetitive work across documentation, issue triage, pull request review, release preparation, contributor onboarding, and security readiness.
 
-Paste maintainer workflow content or model a repository's files, and get actionable scores, checklists, templates, and recommendations.
+Paste a public GitHub repository URL and MaintainerOS will fetch the README, repository files, recent commits, open issues, and open pull requests from the GitHub API, then generate actionable scores and maintainer recommendations.
 
 ## Why MaintainerOS exists
 
@@ -18,7 +18,7 @@ MaintainerOS is built to make those workflows faster and more consistent for sol
 
 ## Features
 
-- **Maintainer Health Dashboard** — combined score across docs, repo health, security readiness, and PR risk
+- **Live GitHub repository scanning** — fetches README, repo files, commits, issues, and pull requests from the public GitHub API
 - **Repo Health Scanner** — checks README, license, contributing guide, issue templates, PR templates, CI, changelog, lockfile, and security policy
 - **README Audit** — scores structure, missing sections, setup clarity, examples, and contributor usefulness
 - **Issue Triage Helper** — suggests labels, priority, missing information, and maintainer response templates
@@ -64,7 +64,7 @@ npm run build
 
 ## Project Roadmap
 
-- Public GitHub API repository scanning
+- GitHub token support for higher API limits
 - GitHub Actions workflow audit
 - Contributor onboarding score
 - Stale issue and stale PR detection

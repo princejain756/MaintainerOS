@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import './App.css'
+import { scanGithubRepository } from './githubClient'
 import {
   analyzeReadme,
   analyzeRepoHealth,
@@ -13,74 +14,62 @@ import {
 
 type Tab = 'overview' | 'readme' | 'repo' | 'issues' | 'prs' | 'release' | 'security'
 
-const starterReadme = `# MaintainerOS
-
-The open-source command center for healthier repositories.
-
-MaintainerOS helps maintainers reduce repetitive work across documentation, issue triage, pull request review, release preparation, contributor onboarding, and security readiness.
-
-## Features
-
-- Repo health scoring
-- README audits
-- Issue triage suggestions
-- PR review checklists
-- Release notes generation
-
-## Installation
-
-\`\`\`bash
-npm install
-\`\`\`
-
-## Usage
-
-\`\`\`bash
-npm run dev
-\`\`\`
-
-## Contributing
-
-Open an issue or pull request with context.
-
-## License
-
-MIT
-`
-
-const samplePackageJson = JSON.stringify(
-  {
-    scripts: { dev: 'vite', build: 'tsc -b && vite build', test: 'vitest --run' },
-    dependencies: { react: '^19.0.0', 'react-dom': '^19.0.0' },
-    devDependencies: { typescript: '^6.0.0', vite: '^8.0.0', vitest: '^4.0.0' },
-  },
-  null,
-  2,
-)
+const defaultRepoUrl = 'https://github.com/princejain756/MaintainerOS'
 
 function App() {
   const [activeTab, setActiveTab] = useState<Tab>('overview')
-  const [repoUrl, setRepoUrl] = useState('https://github.com/princejain756/maintaineros')
-  const [readme, setReadme] = useState(starterReadme)
-  const [repoFiles, setRepoFiles] = useState<RepoFiles>({
-    readme: starterReadme,
-    license: true,
-    contributing: true,
-    codeOfConduct: false,
-    securityPolicy: true,
-    changelog: false,
-    issueTemplates: true,
-    pullRequestTemplate: true,
-    ciWorkflow: true,
-    packageJson: samplePackageJson,
-    lockfile: true,
-  })
-  const [issueTitle, setIssueTitle] = useState('Bug: app crashes when repository has no README')
-  const [issueBody, setIssueBody] = useState('The dashboard fails when scanning a repo without a README. I expected it to show a missing README warning. Node 22, Chrome, latest main branch.')
-  const [prTitle, setPrTitle] = useState('feat: add GitHub repository scanner')
-  const [prBody, setPrBody] = useState('Adds public GitHub API integration and updates repo health scoring. Includes tests for missing files and rate limit states.')
-  const [changedFiles, setChangedFiles] = useState('src/githubClient.ts\nsrc/maintainerEngines.ts\nsrc/App.tsx')
-  const [commits, setCommits] = useState('feat: add issue triage helper\nfeat: add repo health score\nfix: handle missing README\ndocs: update usage guide')
+  const [repoUrl, setRepoUrl] = useState(defaultRepoUrl)
+  const [scannedRepo, setScannedRepo] = useState('princejain756/MaintainerOS')
+  const [readme, setReadme] = useState('')
+  const [repoFiles, setRepoFiles] = useState<RepoFiles>({})
+  const [issueTitle, setIssueTitle] = useState('')
+  const [issueBody, setIssueBody] = useState('')
+  const [prTitle, setPrTitle] = useState('')
+  const [prBody, setPrBody] = useState('')
+  const [changedFiles, setChangedFiles] = useState('')
+  const [commits, setCommits] = useState('')
+  const [actions, setActions] = useState<string[]>([])
+  const [repoStats, setRepoStats] = useState({ stars: 0, openIssues: 0, openPullRequests: 0, lastPushedAt: '' })
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [scanSource, setScanSource] = useState<'idle' | 'github'>('idle')
+
+  const analyzeRepository = useCallback(async (url: string) => {
+    setLoading(true)
+    setError('')
+
+    try {
+      const result = await scanGithubRepository(url)
+      setScannedRepo(result.fullName)
+      setReadme(result.readme)
+      setRepoFiles(result.repoFiles)
+      setIssueTitle(result.issueTitle)
+      setIssueBody(result.issueBody)
+      setPrTitle(result.prTitle)
+      setPrBody(result.prBody)
+      setChangedFiles(result.changedFiles)
+      setCommits(result.commits)
+      setActions(result.actions)
+      setRepoStats({
+        stars: result.stars,
+        openIssues: result.openIssues,
+        openPullRequests: result.openPullRequests,
+        lastPushedAt: result.lastPushedAt,
+      })
+      setScanSource('github')
+    } catch (scanError) {
+      setError(scanError instanceof Error ? scanError.message : 'Unable to scan this repository.')
+      setScanSource('idle')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    // Initial public repository scan on page load.
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- async GitHub fetch on mount is intentional
+    void analyzeRepository(defaultRepoUrl)
+  }, [analyzeRepository])
 
   const readmeScore = useMemo(() => analyzeReadme(readme), [readme])
   const repoScore = useMemo(() => analyzeRepoHealth({ ...repoFiles, readme }), [repoFiles, readme])
@@ -89,7 +78,11 @@ function App() {
   const prReview = useMemo(() => reviewPullRequest(prTitle, prBody, changedFiles), [prTitle, prBody, changedFiles])
   const releasePlan = useMemo(() => generateReleasePlan(commits), [commits])
 
-  const maintainerScore = Math.round((readmeScore.score + repoScore.score + securityScore.score + prReview.mergeReadiness) / 4)
+  const maintainerScore = useMemo(() => {
+    if (loading || scanSource !== 'github') return 0
+    return Math.round((readmeScore.score + repoScore.score + securityScore.score + prReview.mergeReadiness) / 4)
+  }, [loading, scanSource, readmeScore.score, repoScore.score, securityScore.score, prReview.mergeReadiness])
+
   const cards = [
     { label: 'Maintainer Health', value: maintainerScore, grade: gradeLabel(maintainerScore), accent: 'blue' },
     { label: 'Docs Score', value: readmeScore.score, grade: readmeScore.grade, accent: 'green' },
@@ -104,18 +97,37 @@ function App() {
           <span className="eyebrow">MaintainerOS</span>
           <h1>The open-source command center for healthier repositories.</h1>
           <p>
-            Audit repo health, triage issues, review PR risk, generate changelogs,
-            and prepare releases from one maintainer-focused dashboard.
+            Scan any public GitHub repository, then audit repo health, triage issues,
+            review PR risk, generate changelogs, and prepare releases from live data.
           </p>
           <div className="repo-input">
-            <input value={repoUrl} onChange={(event) => setRepoUrl(event.target.value)} aria-label="GitHub repository URL" />
-            <button type="button">Analyze workflow</button>
+            <input
+              value={repoUrl}
+              onChange={(event) => setRepoUrl(event.target.value)}
+              aria-label="GitHub repository URL"
+              placeholder="https://github.com/owner/repo"
+            />
+            <button disabled={loading} onClick={() => void analyzeRepository(repoUrl)} type="button">
+              {loading ? 'Scanning…' : 'Analyze repository'}
+            </button>
+          </div>
+          <div className="status-row">
+            {scanSource === 'github' && !loading && <span className="status-pill live">Live GitHub scan</span>}
+            {loading && <span className="status-pill loading">Fetching repository data…</span>}
+            {error && <span className="status-pill error">{error}</span>}
           </div>
         </div>
         <div className="hero-panel">
           <span>Maintainer Health Score</span>
-          <strong>{maintainerScore}</strong>
-          <p>{repoUrl.replace('https://github.com/', '')}</p>
+          <strong>{loading ? '…' : maintainerScore}</strong>
+          <p>{scannedRepo}</p>
+          {scanSource === 'github' && !loading && (
+            <div className="repo-meta">
+              <span>{repoStats.stars} stars</span>
+              <span>{repoStats.openIssues} open issues</span>
+              <span>{repoStats.openPullRequests} open PRs</span>
+            </div>
+          )}
         </div>
       </section>
 
@@ -123,8 +135,8 @@ function App() {
         {cards.map((card) => (
           <article className={`metric ${card.accent}`} key={card.label}>
             <span>{card.label}</span>
-            <strong>{card.value}</strong>
-            <em>Grade {card.grade}</em>
+            <strong>{loading ? '…' : card.value}</strong>
+            <em>Grade {loading ? '…' : card.grade}</em>
           </article>
         ))}
       </section>
@@ -147,16 +159,16 @@ function App() {
 
       {activeTab === 'overview' && (
         <section className="dashboard-grid">
-          <ScorePanel title="Repository Health" card={repoScore} />
-          <ScorePanel title="README Quality" card={readmeScore} />
-          <ScorePanel title="Security Readiness" card={securityScore} />
+          <ScorePanel loading={loading} title="Repository Health" card={repoScore} />
+          <ScorePanel loading={loading} title="README Quality" card={readmeScore} />
+          <ScorePanel loading={loading} title="Security Readiness" card={securityScore} />
           <article className="panel">
             <span className="eyebrow">Maintainer Workload</span>
             <h2>Next best actions</h2>
             <ul className="action-list">
-              <li>Add a changelog to make release history easier to inspect.</li>
-              <li>Add a code of conduct for clearer community expectations.</li>
-              <li>Keep PR templates focused on risk, tests, and release notes.</li>
+              {(actions.length ? actions : ['Scan a public GitHub repository to generate maintainer recommendations.']).map((item) => (
+                <li key={item}>{item}</li>
+              ))}
             </ul>
           </article>
         </section>
@@ -164,15 +176,15 @@ function App() {
 
       {activeTab === 'readme' && (
         <TwoColumn
-          left={<TextArea title="README Markdown" value={readme} onChange={setReadme} />}
-          right={<ScorePanel title="README Audit" card={readmeScore} />}
+          left={<TextArea title="README Markdown (from GitHub)" value={readme} onChange={setReadme} />}
+          right={<ScorePanel loading={loading} title="README Audit" card={readmeScore} />}
         />
       )}
 
       {activeTab === 'repo' && (
         <TwoColumn
-          left={<RepoChecklist repoFiles={repoFiles} setRepoFiles={setRepoFiles} />}
-          right={<ScorePanel title="Repo Health Scanner" card={repoScore} />}
+          left={<RepoChecklist repoFiles={repoFiles} />}
+          right={<ScorePanel loading={loading} title="Repo Health Scanner" card={repoScore} />}
         />
       )}
 
@@ -180,7 +192,7 @@ function App() {
         <TwoColumn
           left={(
             <div className="panel stack">
-              <Field label="Issue title" value={issueTitle} onChange={setIssueTitle} />
+              <Field label="Issue title (latest open issue)" value={issueTitle} onChange={setIssueTitle} />
               <TextArea title="Issue body" value={issueBody} onChange={setIssueBody} small />
             </div>
           )}
@@ -203,7 +215,7 @@ function App() {
         <TwoColumn
           left={(
             <div className="panel stack">
-              <Field label="PR title" value={prTitle} onChange={setPrTitle} />
+              <Field label="PR title (latest open PR)" value={prTitle} onChange={setPrTitle} />
               <TextArea title="PR description" value={prBody} onChange={setPrBody} small />
               <TextArea title="Changed files" value={changedFiles} onChange={setChangedFiles} small />
             </div>
@@ -224,7 +236,7 @@ function App() {
 
       {activeTab === 'release' && (
         <TwoColumn
-          left={<TextArea title="Commit messages" value={commits} onChange={setCommits} />}
+          left={<TextArea title="Recent commit messages (from GitHub)" value={commits} onChange={setCommits} />}
           right={(
             <article className="panel">
               <span className="eyebrow">Release Notes</span>
@@ -239,20 +251,20 @@ function App() {
 
       {activeTab === 'security' && (
         <TwoColumn
-          left={<TextArea title="package.json" value={repoFiles.packageJson ?? ''} onChange={(value) => setRepoFiles((current) => ({ ...current, packageJson: value }))} />}
-          right={<ScorePanel title="Security Readiness" card={securityScore} />}
+          left={<TextArea title="package.json (from GitHub)" value={repoFiles.packageJson ?? ''} onChange={(value) => setRepoFiles((current) => ({ ...current, packageJson: value }))} />}
+          right={<ScorePanel loading={loading} title="Security Readiness" card={securityScore} />}
         />
       )}
     </main>
   )
 }
 
-function ScorePanel({ title, card }: { title: string; card: ScoreCard }) {
+function ScorePanel({ title, card, loading }: { title: string; card: ScoreCard; loading: boolean }) {
   return (
     <article className="panel">
       <span className="eyebrow">{title}</span>
-      <div className="panel-score"><strong>{card.score}</strong><em>{card.grade}</em></div>
-      <p>{card.summary}</p>
+      <div className="panel-score"><strong>{loading ? '…' : card.score}</strong><em>{loading ? '…' : card.grade}</em></div>
+      <p>{loading ? 'Scanning repository…' : card.summary}</p>
       <div className="signal-list">
         {card.signals.slice(0, 6).map((signal) => (
           <div className={`signal ${signal.severity}`} key={`${signal.label}-${signal.detail}`}>
@@ -287,7 +299,7 @@ function Field({ label, value, onChange }: { label: string; value: string; onCha
   )
 }
 
-function RepoChecklist({ repoFiles, setRepoFiles }: { repoFiles: RepoFiles; setRepoFiles: React.Dispatch<React.SetStateAction<RepoFiles>> }) {
+function RepoChecklist({ repoFiles }: { repoFiles: RepoFiles }) {
   const options: Array<[keyof RepoFiles, string]> = [
     ['license', 'License'],
     ['contributing', 'Contributing guide'],
@@ -303,17 +315,13 @@ function RepoChecklist({ repoFiles, setRepoFiles }: { repoFiles: RepoFiles; setR
   return (
     <article className="panel">
       <span className="eyebrow">Repository files</span>
-      <h2>Maintainer infrastructure</h2>
+      <h2>Detected maintainer infrastructure</h2>
       <div className="check-grid">
         {options.map(([key, label]) => (
-          <label key={key}>
-            <input
-              checked={Boolean(repoFiles[key])}
-              onChange={(event) => setRepoFiles((current) => ({ ...current, [key]: event.target.checked }))}
-              type="checkbox"
-            />
+          <div className={`detected-item ${repoFiles[key] ? 'present' : 'missing'}`} key={key}>
+            <span>{repoFiles[key] ? '✓' : '✕'}</span>
             {label}
-          </label>
+          </div>
         ))}
       </div>
     </article>
