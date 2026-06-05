@@ -2,6 +2,9 @@
 
 The open-source command center for healthier repositories.
 
+**Live demo:** [https://maintaineros-inky.vercel.app](https://maintaineros-inky.vercel.app)  
+**Custom domain:** [https://maintaineros.prince.sh](https://maintaineros.prince.sh) *(add in Vercel after DNS is configured)*
+
 MaintainerOS helps open-source maintainers reduce repetitive work across documentation, issue triage, pull request review, release preparation, contributor onboarding, and security readiness.
 
 Paste maintainer workflow content or model a repository's files, and get actionable scores, checklists, templates, and recommendations.
@@ -32,7 +35,11 @@ MaintainerOS is built to make those workflows faster and more consistent for sol
 - Vitest
 - ESLint
 
-## Installation
+## Demo
+
+Try the live app: [https://maintaineros-inky.vercel.app](https://maintaineros-inky.vercel.app)
+
+Custom domain: `maintaineros.prince.sh`
 
 ```bash
 npm install
