@@ -156,13 +156,49 @@ Open-source maintainers often spend significant time answering incomplete issues
 
 The project is public, open source, and built with React, TypeScript, Vite, and Vitest. Its goal is to make high-quality maintainer tooling accessible without requiring paid infrastructure or complex setup.
 
-## Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md).
-
 ## Security
 
-See [SECURITY.md](SECURITY.md).
+MaintainerOS is a **public web tool**. Anyone can visit [maintaineros.prince.sh](https://maintaineros.prince.sh) and scan **public** GitHub repositories. That is intentional.
+
+### What is public
+
+- The website itself is publicly accessible over HTTPS
+- Anyone can paste a public GitHub repository URL and run a scan
+- Scan results are generated in the browser from publicly available GitHub data
+
+### What MaintainerOS does not store or expose
+
+- No OpenAI API keys in the frontend
+- No GitHub personal access tokens in the website
+- No user accounts or login system
+- No backend database of scanned repositories
+- No access to private repositories
+- No access to a visitor's GitHub account
+
+The live app uses the **public GitHub REST API without authentication**. It only requests repository data that GitHub already exposes for public repos, such as README content, repository files, commits, open issues, and open pull requests.
+
+### CLI and GitHub Actions
+
+The report CLI and GitHub Actions workflow run in trusted environments:
+
+- Locally on a maintainer's machine, or
+- Inside GitHub Actions using the repository context
+
+Optional tokens such as `GITHUB_TOKEN` are only intended for CI or local automation. They should never be embedded in frontend code or committed to the repository.
+
+### Current limitations
+
+- Public GitHub API rate limits apply to unauthenticated scans
+- Only public repositories can be analyzed in the current version
+- The web app does not yet include abuse protection or authenticated private-repo scanning
+
+### Reporting vulnerabilities
+
+If you discover a security issue in MaintainerOS itself, please report it responsibly. Do not open a public GitHub issue for vulnerabilities.
+
+See [SECURITY.md](SECURITY.md) for the disclosure process.
+
+## Contributing
 
 ## License
 
