@@ -2,11 +2,15 @@
 
 The open-source command center for healthier repositories.
 
+[![Live Demo](https://img.shields.io/badge/demo-maintaineros.prince.sh-66e3ff)](https://maintaineros.prince.sh)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![CI](https://github.com/princejain756/MaintainerOS/actions/workflows/ci.yml/badge.svg)](https://github.com/princejain756/MaintainerOS/actions/workflows/ci.yml)
+
 **Live demo:** [https://maintaineros.prince.sh](https://maintaineros.prince.sh)
 
 MaintainerOS helps open-source maintainers reduce repetitive work across documentation, issue triage, pull request review, release preparation, contributor onboarding, and security readiness.
 
-Paste a public GitHub repository URL and MaintainerOS will fetch the README, repository files, recent commits, open issues, and open pull requests from the GitHub API, then generate actionable scores and maintainer recommendations.
+Paste a public GitHub repository URL and MaintainerOS fetches live data from the GitHub API — README, repository files, recent commits, open issues, and open pull requests — then generates actionable scores and maintainer recommendations.
 
 ## Why MaintainerOS exists
 
@@ -19,6 +23,7 @@ MaintainerOS is built to make those workflows faster and more consistent for sol
 ## Features
 
 - **Live GitHub repository scanning** — fetches README, repo files, commits, issues, and pull requests from the public GitHub API
+- **Maintainer Health Dashboard** — combined score across docs, repo health, security readiness, and PR risk
 - **Repo Health Scanner** — checks README, license, contributing guide, issue templates, PR templates, CI, changelog, lockfile, and security policy
 - **README Audit** — scores structure, missing sections, setup clarity, examples, and contributor usefulness
 - **Issue Triage Helper** — suggests labels, priority, missing information, and maintainer response templates
@@ -26,17 +31,24 @@ MaintainerOS is built to make those workflows faster and more consistent for sol
 - **Release Notes Generator** — turns commit messages into grouped changelogs and version bump suggestions
 - **Security Readiness Check** — reviews disclosure policy, lockfile presence, dependency footprint, and risky scripts
 
-## Tech Stack
+## Quick start
 
-- React
-- TypeScript
-- Vite
-- Vitest
-- ESLint
+### Try the live app
 
-## Demo
+Open [https://maintaineros.prince.sh](https://maintaineros.prince.sh), paste a public GitHub repository URL, and click **Analyze repository**.
 
-Try the live app: [https://maintaineros.prince.sh](https://maintaineros.prince.sh)
+### Run locally
+
+```bash
+git clone https://github.com/princejain756/MaintainerOS.git
+cd MaintainerOS
+npm install
+npm run dev
+```
+
+Then open the local URL printed by Vite.
+
+## Installation
 
 ```bash
 npm install
@@ -48,7 +60,11 @@ npm install
 npm run dev
 ```
 
-Then open the local URL printed by Vite.
+Example repositories to scan:
+
+- `https://github.com/princejain756/MaintainerOS`
+- `https://github.com/facebook/react`
+- `https://github.com/vercel/next.js`
 
 ## Test
 
@@ -62,6 +78,24 @@ npm test -- --run
 npm run build
 ```
 
+## Tech Stack
+
+- React
+- TypeScript
+- Vite
+- Vitest
+- ESLint
+- GitHub REST API
+
+## Project structure
+
+```text
+src/
+  App.tsx                 # Maintainer dashboard UI
+  githubClient.ts         # Live GitHub repository scanning
+  maintainerEngines.ts    # Scoring and analysis logic
+```
+
 ## Project Roadmap
 
 - GitHub token support for higher API limits
@@ -71,9 +105,8 @@ npm run build
 - Maintainer workload analytics
 - Exportable Markdown reports
 - GitHub App integration for automated issue and PR comments
-- Security policy and release readiness templates
 
-## Example Use Cases
+## Example use cases
 
 ### For maintainers
 
@@ -103,6 +136,14 @@ Open-source maintainers often spend significant time answering incomplete issues
 
 The project is public, open source, and built with React, TypeScript, Vite, and Vitest. Its goal is to make high-quality maintainer tooling accessible without requiring paid infrastructure or complex setup.
 
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## Security
+
+See [SECURITY.md](SECURITY.md).
+
 ## License
 
-MIT
+MIT. See [LICENSE](LICENSE).

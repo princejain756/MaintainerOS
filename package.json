@@ -1,7 +1,15 @@
 {
   "name": "maintaineros",
-  "private": true,
-  "version": "0.0.0",
+  "private": false,
+  "version": "1.0.0",
+  "description": "An open-source command center for repo health, issue triage, PR review, changelogs, and release readiness.",
+  "author": "Prince Jain",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/princejain756/MaintainerOS.git"
+  },
+  "homepage": "https://maintaineros.prince.sh",
   "type": "module",
   "scripts": {
     "dev": "vite",

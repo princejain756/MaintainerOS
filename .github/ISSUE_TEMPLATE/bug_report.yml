@@ -1,0 +1,39 @@
+name: Bug report
+description: Report a problem with MaintainerOS scanning or scoring
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve MaintainerOS. Please include enough detail for a maintainer to reproduce the issue.
+  - type: input
+    id: repository
+    attributes:
+      label: GitHub repository scanned
+      description: The public repository URL you tried to analyze
+      placeholder: https://github.com/owner/repo
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What did you expect MaintainerOS to do?
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: What happened instead?
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Browser, OS, and whether you used the live site or local dev
+      placeholder: Chrome 136, macOS, https://maintaineros.prince.sh
+    validations:
+      required: true

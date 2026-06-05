@@ -1,0 +1,30 @@
+name: Feature request
+description: Suggest a maintainer workflow improvement
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        MaintainerOS is built for open-source maintainers. Strong feature requests explain which repetitive maintainer task should become easier.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Maintainer problem
+      description: What repetitive maintainer work should this feature reduce?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: How should MaintainerOS solve it?
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: What other tools or workflows did you consider?
+    validations:
+      required: false
