@@ -9,6 +9,7 @@ lerna-debug.log*
 
 node_modules
 dist
+maintaineros-report.md
 dist-ssr
 *.local
 

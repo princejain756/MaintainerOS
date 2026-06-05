@@ -16,6 +16,7 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "test": "vitest",
+    "report": "node --experimental-strip-types scripts/generate-report.ts",
     "preview": "vite preview"
   },
   "dependencies": {

@@ -1,0 +1,41 @@
+name: MaintainerOS Report
+
+on:
+  workflow_dispatch:
+    inputs:
+      min_score:
+        description: Minimum maintainer health score required for the workflow to pass
+        required: false
+        default: "70"
+  schedule:
+    - cron: "0 9 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  maintaineros-report:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate MaintainerOS report
+        run: npm run report -- --repo "$GITHUB_REPOSITORY" --output maintaineros-report.md --min-score "${{ github.event.inputs.min_score || '70' }}"
+
+      - name: Upload report artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: maintaineros-report
+          path: maintaineros-report.md

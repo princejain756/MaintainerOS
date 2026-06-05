@@ -23,7 +23,7 @@ MaintainerOS is built to make those workflows faster and more consistent for sol
 ## Features
 
 - **Live GitHub repository scanning** — fetches README, repo files, commits, issues, and pull requests from the public GitHub API
-- **Maintainer Health Dashboard** — combined score across docs, repo health, security readiness, and PR risk
+- **MaintainerOS Report Workflow** — generates a Markdown maintainer health report in GitHub Actions on demand or weekly
 - **Repo Health Scanner** — checks README, license, contributing guide, issue templates, PR templates, CI, changelog, lockfile, and security policy
 - **README Audit** — scores structure, missing sections, setup clarity, examples, and contributor usefulness
 - **Issue Triage Helper** — suggests labels, priority, missing information, and maintainer response templates
@@ -95,6 +95,26 @@ src/
   githubClient.ts         # Live GitHub repository scanning
   maintainerEngines.ts    # Scoring and analysis logic
 ```
+
+## MaintainerOS GitHub Action
+
+MaintainerOS now includes workflow infrastructure, not only a web dashboard.
+
+Run a maintainer health report locally:
+
+```bash
+npm run report -- --repo princejain756/MaintainerOS --output maintaineros-report.md
+```
+
+Or use the included GitHub Actions workflow:
+
+```text
+.github/workflows/maintaineros-report.yml
+```
+
+The workflow runs manually or weekly, generates `maintaineros-report.md`, uploads it as an artifact, and can fail when the maintainer score drops below a minimum threshold.
+
+See [docs/github-action.md](docs/github-action.md).
 
 ## Project Roadmap
 
