@@ -116,6 +116,14 @@ The workflow runs manually or weekly, generates `maintaineros-report.md`, upload
 
 See [docs/github-action.md](docs/github-action.md).
 
+## Documentation
+
+- [GitHub Action guide](docs/github-action.md)
+- [Example maintainer report](docs/example-report.md)
+- [Project roadmap](docs/roadmap.md)
+- [Security policy](SECURITY.md)
+- [Contributing guide](CONTRIBUTING.md)
+
 ## Project Roadmap
 
 - GitHub token support for higher API limits
