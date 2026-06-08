@@ -31,6 +31,31 @@ MaintainerOS is built to make those workflows faster and more consistent for sol
 - **Release Notes Generator** — turns commit messages into grouped changelogs and version bump suggestions
 - **Security Readiness Check** — reviews disclosure policy, lockfile presence, dependency footprint, and risky scripts
 
+## Demo
+
+Try the live app: [https://maintaineros.prince.sh](https://maintaineros.prince.sh)
+
+1. Paste a public GitHub repository URL
+2. Click **Analyze repository**
+3. Review maintainer health, repo health, security readiness, issue triage, PR review, and release notes
+4. Optionally run the GitHub Actions report workflow for automated Markdown output
+
+> Tip: Record a short screen capture of the live demo and attach it here as a GIF for social posts and the README.
+
+## Screenshots
+
+### Maintainer dashboard
+
+![MaintainerOS dashboard preview](docs/images/dashboard-preview.svg)
+
+### Repo health scanner
+
+![MaintainerOS repo health preview](docs/images/repo-health-preview.svg)
+
+### GitHub Actions report
+
+![MaintainerOS report preview](docs/images/report-preview.svg)
+
 ## Quick start
 
 ### Try the live app
@@ -121,6 +146,7 @@ See [docs/github-action.md](docs/github-action.md).
 - [GitHub Action guide](docs/github-action.md)
 - [Example maintainer report](docs/example-report.md)
 - [Project roadmap](docs/roadmap.md)
+- [ROADMAP.md](ROADMAP.md)
 - [Security policy](SECURITY.md)
 - [Contributing guide](CONTRIBUTING.md)
 

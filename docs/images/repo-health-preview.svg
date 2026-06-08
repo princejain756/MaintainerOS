@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675" viewBox="0 0 1200 675" fill="none">
+  <rect width="1200" height="675" rx="24" fill="#070A12"/>
+  <text x="60" y="70" fill="#66E3FF" font-family="Arial, sans-serif" font-size="22" font-weight="700">Repo Health Scanner</text>
+  <rect x="60" y="110" width="520" height="500" rx="28" fill="#10182A" stroke="#22304A"/>
+  <rect x="620" y="110" width="520" height="500" rx="28" fill="#10182A" stroke="#22304A"/>
+  <text x="90" y="160" fill="#F7FBFF" font-family="Arial, sans-serif" font-size="24" font-weight="700">Detected maintainer infrastructure</text>
+  <text x="90" y="220" fill="#66F2A5" font-family="Arial, sans-serif" font-size="18"> License</text>
+  <text x="90" y="260" fill="#66F2A5" font-family="Arial, sans-serif" font-size="18"> Contributing guide</text>
+  <text x="90" y="300" fill="#66F2A5" font-family="Arial, sans-serif" font-size="18"> Security policy</text>
+  <text x="90" y="340" fill="#66F2A5" font-family="Arial, sans-serif" font-size="18"> Issue templates</text>
+  <text x="90" y="380" fill="#66F2A5" font-family="Arial, sans-serif" font-size="18"> PR template</text>
+  <text x="90" y="420" fill="#66F2A5" font-family="Arial, sans-serif" font-size="18"> CI workflow</text>
+  <text x="90" y="460" fill="#66F2A5" font-family="Arial, sans-serif" font-size="18"> Lockfile</text>
+  <text x="650" y="160" fill="#AAB6C8" font-family="Arial, sans-serif" font-size="18">Repository Health</text>
+  <text x="650" y="250" fill="#B596FF" font-family="Arial, sans-serif" font-size="88" font-weight="700">100</text>
+  <text x="760" y="250" fill="#FFE073" font-family="Arial, sans-serif" font-size="42" font-weight="700">A</text>
+  <text x="650" y="310" fill="#AAB6C8" font-family="Arial, sans-serif" font-size="20">Repository is healthy and ready for contributors.</text>
+  <rect x="650" y="360" width="460" height="56" rx="16" fill="#0D1424" stroke="#22304A"/>
+  <rect x="650" y="430" width="460" height="56" rx="16" fill="#0D1424" stroke="#22304A"/>
+  <rect x="650" y="500" width="460" height="56" rx="16" fill="#0D1424" stroke="#22304A"/>
+  <text x="670" y="393" fill="#66F2A5" font-family="Arial, sans-serif" font-size="16">License present</text>
+  <text x="670" y="463" fill="#66F2A5" font-family="Arial, sans-serif" font-size="16">CI workflow present</text>
+  <text x="670" y="533" fill="#66F2A5" font-family="Arial, sans-serif" font-size="16">Security policy present</text>
+</svg>

@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675" viewBox="0 0 1200 675" fill="none">
+  <rect width="1200" height="675" rx="24" fill="#070A12"/>
+  <rect x="40" y="40" width="720" height="280" rx="28" fill="url(#g1)" stroke="#22304A"/>
+  <rect x="780" y="40" width="380" height="280" rx="28" fill="#10182A" stroke="#22304A"/>
+  <text x="70" y="95" fill="#66E3FF" font-family="Arial, sans-serif" font-size="18" font-weight="700">MAINTAINEROS</text>
+  <text x="70" y="150" fill="#F7FBFF" font-family="Arial, sans-serif" font-size="42" font-weight="700">The open-source command center</text>
+  <text x="70" y="190" fill="#AAB6C8" font-family="Arial, sans-serif" font-size="20">Scan public GitHub repositories and get maintainer health scores.</text>
+  <rect x="70" y="230" width="500" height="54" rx="27" fill="#0D1424" stroke="#22304A"/>
+  <rect x="500" y="238" width="150" height="38" rx="19" fill="url(#g2)"/>
+  <text x="90" y="263" fill="#AAB6C8" font-family="Arial, sans-serif" font-size="16">github.com/princejain756/MaintainerOS</text>
+  <text x="525" y="263" fill="#061019" font-family="Arial, sans-serif" font-size="16" font-weight="700">Analyze</text>
+  <text x="820" y="120" fill="#AAB6C8" font-family="Arial, sans-serif" font-size="18">Maintainer Health Score</text>
+  <text x="820" y="220" fill="#66F2A5" font-family="Arial, sans-serif" font-size="96" font-weight="700">91</text>
+  <text x="820" y="260" fill="#AAB6C8" font-family="Arial, sans-serif" font-size="18">princejain756/MaintainerOS</text>
+  <rect x="40" y="350" width="265" height="120" rx="22" fill="#10182A" stroke="#22304A"/>
+  <rect x="325" y="350" width="265" height="120" rx="22" fill="#10182A" stroke="#22304A"/>
+  <rect x="610" y="350" width="265" height="120" rx="22" fill="#10182A" stroke="#22304A"/>
+  <rect x="895" y="350" width="265" height="120" rx="22" fill="#10182A" stroke="#22304A"/>
+  <text x="70" y="390" fill="#AAB6C8" font-family="Arial, sans-serif" font-size="16">Docs Score</text>
+  <text x="355" y="390" fill="#AAB6C8" font-family="Arial, sans-serif" font-size="16">Repo Health</text>
+  <text x="640" y="390" fill="#AAB6C8" font-family="Arial, sans-serif" font-size="16">Security</text>
+  <text x="925" y="390" fill="#AAB6C8" font-family="Arial, sans-serif" font-size="16">Maintainer Health</text>
+  <text x="70" y="440" fill="#66F2A5" font-family="Arial, sans-serif" font-size="42" font-weight="700">100</text>
+  <text x="355" y="440" fill="#B596FF" font-family="Arial, sans-serif" font-size="42" font-weight="700">100</text>
+  <text x="640" y="440" fill="#FFB35C" font-family="Arial, sans-serif" font-size="42" font-weight="700">100</text>
+  <text x="925" y="440" fill="#66E3FF" font-family="Arial, sans-serif" font-size="42" font-weight="700">91</text>
+  <defs>
+    <linearGradient id="g1" x1="40" y1="40" x2="760" y2="320" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#152033"/>
+      <stop offset="1" stop-color="#0B111C"/>
+    </linearGradient>
+    <linearGradient id="g2" x1="500" y1="238" x2="650" y2="276" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#66E3FF"/>
+      <stop offset="1" stop-color="#66F2A5"/>
+    </linearGradient>
+  </defs>
+</svg>
