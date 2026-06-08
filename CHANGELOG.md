@@ -2,6 +2,20 @@
 
 All notable changes to MaintainerOS are documented in this file.
 
+## [1.0.2] - 2026-06-07
+
+### Added
+
+- README screenshots and demo section
+- Root `ROADMAP.md` for repository About visibility
+- Preview images for dashboard, repo health, and GitHub Actions report
+- SEO and Open Graph metadata for the live site
+
+### Changed
+
+- Updated repository homepage to `maintaineros.prince.sh`
+- Improved README polish for reviewers and new visitors
+
 ## [1.0.1] - 2026-06-05
 
 ### Added
