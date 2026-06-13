@@ -1,7 +1,7 @@
 {
   "name": "maintaineros",
   "private": false,
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "An open-source command center for repo health, issue triage, PR review, changelogs, and release readiness.",
   "author": "Prince Jain",
   "license": "MIT",

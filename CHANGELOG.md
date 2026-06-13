@@ -2,6 +2,23 @@
 
 All notable changes to MaintainerOS are documented in this file.
 
+## [1.0.3] - 2026-06-13
+
+### Added
+
+- Stale issue and stale PR detection with maintainer backlog signals
+- Exportable JSON report format in dashboard and CLI (`--format json`)
+- Optional GitHub token support for higher API limits in browser and CI
+- Security workflow detection for CodeQL, dependency review, and similar CI checks
+- Stronger risky npm script pattern detection
+- README ecosystem positioning, roadmap progress, and CLI examples
+
+### Changed
+
+- Dashboard now shows stale backlog panel and JSON export action
+- Maintainer reports include stale backlog section
+- Security scoring rewards repos with automated security workflows
+
 ## [1.0.2] - 2026-06-07
 
 ### Added
