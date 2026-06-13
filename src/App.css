@@ -387,6 +387,49 @@ pre {
   border-color: rgba(255, 108, 122, 0.35);
 }
 
+.status-pill.token {
+  color: #fff2d8;
+  background: rgba(255, 196, 102, 0.12);
+  border-color: rgba(255, 196, 102, 0.35);
+}
+
+.token-row {
+  display: grid;
+  gap: 10px;
+  max-width: 780px;
+  margin-top: 14px;
+}
+
+.token-toggle,
+.export-button {
+  width: fit-content;
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 10px 16px;
+  font-weight: 800;
+}
+
+.token-field {
+  display: grid;
+  gap: 8px;
+}
+
+.token-field span {
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.token-field input {
+  border-radius: 16px;
+  padding: 12px 14px;
+}
+
+.export-button {
+  margin-top: 18px;
+}
+
 .repo-meta {
   display: flex;
   flex-wrap: wrap;

@@ -1,24 +1,29 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import './App.css'
-import { scanGithubRepository } from './githubClient'
+import { scanGithubRepository, setGithubToken } from './githubClient'
 import {
   analyzeReadme,
   analyzeRepoHealth,
   analyzeSecurity,
+  detectStaleItems,
   generateReleasePlan,
   reviewPullRequest,
   triageIssue,
   type RepoFiles,
   type ScoreCard,
 } from './maintainerEngines'
+import { formatMaintainerReportJson } from './reportFormatter'
 
 type Tab = 'overview' | 'readme' | 'repo' | 'issues' | 'prs' | 'release' | 'security'
 
 const defaultRepoUrl = 'https://github.com/princejain756/MaintainerOS'
+const tokenStorageKey = 'maintaineros.githubToken'
 
 function App() {
   const [activeTab, setActiveTab] = useState<Tab>('overview')
   const [repoUrl, setRepoUrl] = useState(defaultRepoUrl)
+  const [githubToken, setGithubTokenState] = useState(() => localStorage.getItem(tokenStorageKey) ?? '')
+  const [showTokenField, setShowTokenField] = useState(false)
   const [scannedRepo, setScannedRepo] = useState('princejain756/MaintainerOS')
   const [readme, setReadme] = useState('')
   const [repoFiles, setRepoFiles] = useState<RepoFiles>({})
@@ -29,6 +34,8 @@ function App() {
   const [changedFiles, setChangedFiles] = useState('')
   const [commits, setCommits] = useState('')
   const [actions, setActions] = useState<string[]>([])
+  const [openIssueItems, setOpenIssueItems] = useState<Array<{ number: number; title: string; updated_at: string }>>([])
+  const [openPullItems, setOpenPullItems] = useState<Array<{ number: number; title: string; updated_at: string }>>([])
   const [repoStats, setRepoStats] = useState({ stars: 0, openIssues: 0, openPullRequests: 0, lastPushedAt: '' })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -39,7 +46,9 @@ function App() {
     setError('')
 
     try {
-      const result = await scanGithubRepository(url)
+      const token = githubToken.trim() || undefined
+      setGithubToken(token)
+      const result = await scanGithubRepository(url, { token })
       setScannedRepo(result.fullName)
       setReadme(result.readme)
       setRepoFiles(result.repoFiles)
@@ -50,6 +59,8 @@ function App() {
       setChangedFiles(result.changedFiles)
       setCommits(result.commits)
       setActions(result.actions)
+      setOpenIssueItems(result.openIssueItems)
+      setOpenPullItems(result.openPullItems)
       setRepoStats({
         stars: result.stars,
         openIssues: result.openIssues,
@@ -63,7 +74,7 @@ function App() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [githubToken])
 
   useEffect(() => {
     // Initial public repository scan on page load.
@@ -77,6 +88,7 @@ function App() {
   const issueTriage = useMemo(() => triageIssue(issueTitle, issueBody), [issueTitle, issueBody])
   const prReview = useMemo(() => reviewPullRequest(prTitle, prBody, changedFiles), [prTitle, prBody, changedFiles])
   const releasePlan = useMemo(() => generateReleasePlan(commits), [commits])
+  const staleSummary = useMemo(() => detectStaleItems(openIssueItems, openPullItems), [openIssueItems, openPullItems])
 
   const maintainerScore = useMemo(() => {
     if (loading || scanSource !== 'github') return 0
@@ -89,6 +101,54 @@ function App() {
     { label: 'Repo Health', value: repoScore.score, grade: repoScore.grade, accent: 'purple' },
     { label: 'Security Readiness', value: securityScore.score, grade: securityScore.grade, accent: 'orange' },
   ]
+
+  const saveGithubToken = (value: string) => {
+    setGithubTokenState(value)
+    if (value.trim()) localStorage.setItem(tokenStorageKey, value.trim())
+    else localStorage.removeItem(tokenStorageKey)
+  }
+
+  const exportJsonReport = () => {
+    if (scanSource !== 'github' || loading) return
+    const payload = formatMaintainerReportJson({
+      scan: {
+        owner: scannedRepo.split('/')[0] ?? '',
+        repo: scannedRepo.split('/')[1] ?? '',
+        fullName: scannedRepo,
+        readme,
+        repoFiles,
+        commits,
+        issueTitle,
+        issueBody,
+        prTitle,
+        prBody,
+        changedFiles,
+        openIssues: repoStats.openIssues,
+        openPullRequests: repoStats.openPullRequests,
+        openIssueItems,
+        openPullItems,
+        stars: repoStats.stars,
+        lastPushedAt: repoStats.lastPushedAt,
+        actions,
+      },
+      readmeScore,
+      repoScore,
+      securityScore,
+      issueTriage,
+      prReview,
+      releasePlan,
+      staleSummary,
+      maintainerScore,
+    })
+
+    const blob = new Blob([payload], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const anchor = document.createElement('a')
+    anchor.href = url
+    anchor.download = `${scannedRepo.replace('/', '-')}-maintaineros-report.json`
+    anchor.click()
+    URL.revokeObjectURL(url)
+  }
 
   return (
     <main className="shell">
@@ -113,8 +173,26 @@ function App() {
           </div>
           <div className="status-row">
             {scanSource === 'github' && !loading && <span className="status-pill live">Live GitHub scan</span>}
+            {githubToken && <span className="status-pill token">GitHub token active</span>}
             {loading && <span className="status-pill loading">Fetching repository data…</span>}
             {error && <span className="status-pill error">{error}</span>}
+          </div>
+          <div className="token-row">
+            <button className="token-toggle" onClick={() => setShowTokenField((current) => !current)} type="button">
+              {showTokenField ? 'Hide optional GitHub token' : 'Use optional GitHub token'}
+            </button>
+            {showTokenField && (
+              <label className="token-field">
+                <span>Personal access token (stored locally in your browser only)</span>
+                <input
+                  type="password"
+                  value={githubToken}
+                  onChange={(event) => saveGithubToken(event.target.value)}
+                  placeholder="ghp_..."
+                  autoComplete="off"
+                />
+              </label>
+            )}
           </div>
         </div>
         <div className="hero-panel">
@@ -170,7 +248,13 @@ function App() {
                 <li key={item}>{item}</li>
               ))}
             </ul>
+            {scanSource === 'github' && !loading && (
+              <button className="export-button" onClick={exportJsonReport} type="button">
+                Export JSON report
+              </button>
+            )}
           </article>
+          <StalePanel loading={loading} staleSummary={staleSummary} />
         </section>
       )}
 
@@ -197,16 +281,19 @@ function App() {
             </div>
           )}
           right={(
-            <article className="panel">
-              <span className="eyebrow">Issue Triage</span>
-              <h2>Suggested routing</h2>
-              <p className="priority">Priority: {issueTriage.priority}</p>
-              <div className="chips">{issueTriage.labels.map((label) => <span key={label}>{label}</span>)}</div>
-              <h3>Missing information</h3>
-              <ul className="action-list">{issueTriage.missingInfo.map((item) => <li key={item}>{item}</li>)}</ul>
-              <h3>Maintainer reply</h3>
-              <p>{issueTriage.responseTemplate}</p>
-            </article>
+            <div className="stack">
+              <StalePanel loading={loading} staleSummary={staleSummary} />
+              <article className="panel">
+                <span className="eyebrow">Issue Triage</span>
+                <h2>Suggested routing</h2>
+                <p className="priority">Priority: {issueTriage.priority}</p>
+                <div className="chips">{issueTriage.labels.map((label) => <span key={label}>{label}</span>)}</div>
+                <h3>Missing information</h3>
+                <ul className="action-list">{issueTriage.missingInfo.map((item) => <li key={item}>{item}</li>)}</ul>
+                <h3>Maintainer reply</h3>
+                <p>{issueTriage.responseTemplate}</p>
+              </article>
+            </div>
           )}
         />
       )}
@@ -221,15 +308,18 @@ function App() {
             </div>
           )}
           right={(
-            <article className="panel">
-              <span className="eyebrow">PR Review</span>
-              <h2>Risk: {prReview.risk}</h2>
-              <div className="readiness">Merge readiness <strong>{prReview.mergeReadiness}</strong></div>
-              <h3>Review checklist</h3>
-              <ul className="action-list">{prReview.checklist.map((item) => <li key={item}>{item}</li>)}</ul>
-              <h3>Test suggestions</h3>
-              <ul className="action-list">{prReview.testSuggestions.map((item) => <li key={item}>{item}</li>)}</ul>
-            </article>
+            <div className="stack">
+              <StalePanel loading={loading} staleSummary={staleSummary} showPullRequests />
+              <article className="panel">
+                <span className="eyebrow">PR Review</span>
+                <h2>Risk: {prReview.risk}</h2>
+                <div className="readiness">Merge readiness <strong>{prReview.mergeReadiness}</strong></div>
+                <h3>Review checklist</h3>
+                <ul className="action-list">{prReview.checklist.map((item) => <li key={item}>{item}</li>)}</ul>
+                <h3>Test suggestions</h3>
+                <ul className="action-list">{prReview.testSuggestions.map((item) => <li key={item}>{item}</li>)}</ul>
+              </article>
+            </div>
           )}
         />
       )}
@@ -309,6 +399,7 @@ function RepoChecklist({ repoFiles }: { repoFiles: RepoFiles }) {
     ['issueTemplates', 'Issue templates'],
     ['pullRequestTemplate', 'PR template'],
     ['ciWorkflow', 'CI workflow'],
+    ['securityWorkflow', 'Security workflow'],
     ['lockfile', 'Lockfile'],
   ]
 
@@ -324,6 +415,47 @@ function RepoChecklist({ repoFiles }: { repoFiles: RepoFiles }) {
           </div>
         ))}
       </div>
+    </article>
+  )
+}
+
+function StalePanel({
+  staleSummary,
+  loading,
+  showPullRequests = false,
+}: {
+  staleSummary: ReturnType<typeof detectStaleItems>
+  loading: boolean
+  showPullRequests?: boolean
+}) {
+  const items = showPullRequests ? staleSummary.stalePullRequests : staleSummary.staleIssues
+
+  return (
+    <article className="panel">
+      <span className="eyebrow">Stale Backlog</span>
+      <h2>{loading ? 'Scanning…' : `${staleSummary.totalStale} stale item(s)`}</h2>
+      <p>
+        {loading
+          ? 'Checking issue and pull request activity…'
+          : `Items unchanged for ${staleSummary.thresholdDays}+ days.`}
+      </p>
+      <div className="signal-list">
+        {staleSummary.signals.map((signal) => (
+          <div className={`signal ${signal.severity}`} key={`${signal.label}-${signal.detail}`}>
+            <strong>{signal.label}</strong>
+            <span>{signal.detail}</span>
+          </div>
+        ))}
+      </div>
+      {!loading && items.length > 0 && (
+        <ul className="action-list">
+          {items.slice(0, 6).map((item) => (
+            <li key={`${item.type}-${item.number}`}>
+              #{item.number} {item.title} ({item.daysSinceUpdate} days)
+            </li>
+          ))}
+        </ul>
+      )}
     </article>
   )
 }
