@@ -3,6 +3,7 @@
 The open-source command center for healthier repositories.
 
 [![Live Demo](https://img.shields.io/badge/demo-maintaineros.prince.sh-66e3ff)](https://maintaineros.prince.sh)
+[![Release](https://img.shields.io/github/v/release/princejain756/MaintainerOS?label=release)](https://github.com/princejain756/MaintainerOS/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![CI](https://github.com/princejain756/MaintainerOS/actions/workflows/ci.yml/badge.svg)](https://github.com/princejain756/MaintainerOS/actions/workflows/ci.yml)
 
@@ -16,20 +17,23 @@ Paste a public GitHub repository URL and MaintainerOS fetches live data from the
 
 Open-source maintainers do more than write code. They review pull requests, triage issues, prepare releases, improve documentation, help contributors, and protect project quality.
 
-That work is essential, repetitive, and often invisible.
+That work is essential, repetitive, and often invisible — especially for solo maintainers and small teams without paid tooling.
 
-MaintainerOS is built to make those workflows faster and more consistent for solo maintainers, student maintainers, indie open-source developers, and small teams that do not have access to expensive maintainer tooling.
+MaintainerOS is maintainer infrastructure for the broader OSS ecosystem: a free command center that makes repo health, security readiness, and day-to-day maintenance workflows faster and more consistent.
 
 ## Features
 
 - **Live GitHub repository scanning** — fetches README, repo files, commits, issues, and pull requests from the public GitHub API
-- **MaintainerOS Report Workflow** — generates a Markdown maintainer health report in GitHub Actions on demand or weekly
+- **Stale backlog detection** — flags open issues and PRs unchanged for 30+ days
+- **Exportable JSON reports** — download structured maintainer health data from the dashboard or CLI
+- **Optional GitHub token support** — higher API limits for local use and CI (stored locally in browser only)
+- **MaintainerOS Report Workflow** — generates Markdown maintainer health reports in GitHub Actions on demand or weekly
 - **Repo Health Scanner** — checks README, license, contributing guide, issue templates, PR templates, CI, changelog, lockfile, and security policy
 - **README Audit** — scores structure, missing sections, setup clarity, examples, and contributor usefulness
 - **Issue Triage Helper** — suggests labels, priority, missing information, and maintainer response templates
 - **PR Review Assistant** — estimates risk, merge readiness, review checklist, and test suggestions
 - **Release Notes Generator** — turns commit messages into grouped changelogs and version bump suggestions
-- **Security Readiness Check** — reviews disclosure policy, lockfile presence, dependency footprint, and risky scripts
+- **Security Readiness Check** — reviews disclosure policy, lockfile presence, security workflows, dependency footprint, and risky scripts
 
 ## Demo
 
@@ -37,10 +41,8 @@ Try the live app: [https://maintaineros.prince.sh](https://maintaineros.prince.s
 
 1. Paste a public GitHub repository URL
 2. Click **Analyze repository**
-3. Review maintainer health, repo health, security readiness, issue triage, PR review, and release notes
-4. Optionally run the GitHub Actions report workflow for automated Markdown output
-
-> Tip: Record a short screen capture of the live demo and attach it here as a GIF for social posts and the README.
+3. Review maintainer health, repo health, security readiness, stale backlog, issue triage, PR review, and release notes
+4. Export a JSON report or run the GitHub Actions workflow for automated Markdown output
 
 ## Screenshots
 
@@ -91,6 +93,24 @@ Example repositories to scan:
 - `https://github.com/facebook/react`
 - `https://github.com/vercel/next.js`
 
+Generate a Markdown maintainer report:
+
+```bash
+npm run report -- --repo princejain756/MaintainerOS --output maintaineros-report.md
+```
+
+Generate a JSON report for automation:
+
+```bash
+npm run report -- --repo princejain756/MaintainerOS --output maintaineros-report.json --format json
+```
+
+Use a GitHub token for higher API limits in CI or local runs:
+
+```bash
+GITHUB_TOKEN=ghp_xxx npm run report -- --repo princejain756/MaintainerOS --output maintaineros-report.md
+```
+
 ## Test
 
 ```bash
@@ -119,11 +139,14 @@ src/
   App.tsx                 # Maintainer dashboard UI
   githubClient.ts         # Live GitHub repository scanning
   maintainerEngines.ts    # Scoring and analysis logic
+  reportFormatter.ts      # Markdown and JSON report output
+scripts/
+  generate-report.ts      # CLI for local and CI report generation
 ```
 
 ## MaintainerOS GitHub Action
 
-MaintainerOS now includes workflow infrastructure, not only a web dashboard.
+MaintainerOS includes workflow infrastructure, not only a web dashboard.
 
 Run a maintainer health report locally:
 
@@ -152,19 +175,22 @@ See [docs/github-action.md](docs/github-action.md).
 
 ## Project Roadmap
 
-- GitHub token support for higher API limits
-- GitHub Actions workflow audit
-- Contributor onboarding score
-- Stale issue and stale PR detection
-- Maintainer workload analytics
-- Exportable Markdown reports
-- GitHub App integration for automated issue and PR comments
+- [x] GitHub token support for higher API limits
+- [x] Stale issue and stale PR detection
+- [x] Exportable JSON report format
+- [x] Security workflow and risky script detection improvements
+- [ ] AI-assisted PR review summaries
+- [ ] GitHub Actions workflow audit
+- [ ] Contributor onboarding score
+- [ ] Maintainer workload analytics
+- [ ] GitHub App integration for automated issue and PR comments
 
 ## Example use cases
 
 ### For maintainers
 
 - Understand whether a repository is ready for contributors
+- Spot stale issues and pull requests before backlog grows
 - Improve issue quality with response templates
 - Review pull requests with consistent risk checklists
 - Prepare cleaner changelogs and releases
@@ -179,16 +205,20 @@ See [docs/github-action.md](docs/github-action.md).
 ### For open-source programs
 
 - Evaluate repository readiness
-- Surface maintenance risks
-- Encourage healthier contribution workflows
+- Surface maintenance and security risks
+- Encourage healthier contribution workflows across the ecosystem
 
-## Why this repository qualifies for maintainer support
+## Ecosystem importance
 
-MaintainerOS directly supports open-source maintainers by reducing repetitive maintenance work across documentation, issue triage, pull request review, release preparation, contributor onboarding, and repository health checks.
+Maintainer burnout and repo hygiene are ecosystem-wide problems — not niche developer conveniences. Projects of every size need:
 
-Open-source maintainers often spend significant time answering incomplete issues, reviewing unclear pull requests, preparing releases, improving documentation, and preserving project quality. MaintainerOS provides a free browser-based command center that gives maintainers actionable scores, checklists, templates, and recommendations for these workflows.
+- Clear contributor onboarding
+- Consistent issue and PR quality
+- Security disclosure paths
+- Reproducible dependency practices
+- Sustainable release and documentation habits
 
-The project is public, open source, and built with React, TypeScript, Vite, and Vitest. Its goal is to make high-quality maintainer tooling accessible without requiring paid infrastructure or complex setup.
+MaintainerOS targets that gap with free, browser-based tooling plus CLI and GitHub Actions automation. It is MIT-licensed, actively maintained, and designed to help maintainers who cannot afford enterprise maintainer platforms.
 
 ## Security
 
@@ -203,13 +233,15 @@ MaintainerOS is a **public web tool**. Anyone can visit [maintaineros.prince.sh]
 ### What MaintainerOS does not store or expose
 
 - No OpenAI API keys in the frontend
-- No GitHub personal access tokens in the website
+- No GitHub personal access tokens sent to MaintainerOS servers
 - No user accounts or login system
 - No backend database of scanned repositories
 - No access to private repositories
 - No access to a visitor's GitHub account
 
-The live app uses the **public GitHub REST API without authentication**. It only requests repository data that GitHub already exposes for public repos, such as README content, repository files, commits, open issues, and open pull requests.
+The live app uses the **public GitHub REST API without authentication** by default. It only requests repository data that GitHub already exposes for public repos, such as README content, repository files, commits, open issues, and open pull requests.
+
+Optional GitHub tokens entered in the browser are stored **locally only** and sent directly to GitHub for higher rate limits. They are never transmitted to MaintainerOS infrastructure.
 
 ### CLI and GitHub Actions
 
@@ -233,6 +265,8 @@ If you discover a security issue in MaintainerOS itself, please report it respon
 See [SECURITY.md](SECURITY.md) for the disclosure process.
 
 ## Contributing
+
+Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, testing, and pull request guidelines.
 
 ## License
 
