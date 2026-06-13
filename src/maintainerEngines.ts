@@ -64,6 +64,22 @@ export type ReleasePlan = {
   checklist: string[]
 }
 
+export type MaintainerWorkload = {
+  score: number
+  burden: 'low' | 'moderate' | 'high'
+  summary: string
+  signals: Signal[]
+}
+
+export type WorkflowAudit = {
+  score: number
+  grade: string
+  summary: string
+  workflowsFound: number
+  signals: Signal[]
+  recommendations: string[]
+}
+
 const readmeSections = [
   ['Installation', ['install', 'installation', 'setup', 'getting started']],
   ['Usage', ['usage', 'example', 'examples', 'how to use']],
@@ -339,6 +355,152 @@ export function reviewPullRequest(title: string, description: string, changedFil
     mergeReadiness: clamp(100 - riskScore),
     checklist,
     testSuggestions,
+  }
+}
+
+export function generatePrReviewSummary(title: string, description: string, changedFiles: string, review: PrReview) {
+  const files = changedFiles.split('\n').map((file) => file.trim()).filter(Boolean)
+  const fileCount = files.length
+  const touchedAreas = [
+    [/\.tsx?$|\.jsx?$/, 'application code'],
+    [/\.test\.|\.spec\.|__tests__/, 'tests'],
+    [/readme|docs\//i, 'documentation'],
+    [/\.ya?ml$|workflow/, 'CI workflows'],
+    [/package\.json|lock/i, 'dependencies'],
+  ]
+    .filter(([pattern]) => files.some((file) => (pattern as RegExp).test(file)))
+    .map(([, area]) => area as string)
+
+  const areaText = touchedAreas.length ? touchedAreas.join(', ') : 'repository files'
+  const testNote = /test|spec|coverage/.test(`${description}\n${changedFiles}`.toLowerCase())
+    ? 'Tests are mentioned or touched in this change.'
+    : 'No clear test updates were detected—confirm coverage before merge.'
+
+  return [
+    `PR "${title}" is rated ${review.risk} risk with merge readiness ${review.mergeReadiness}/100.`,
+    fileCount ? `It changes ${fileCount} file(s), mainly affecting ${areaText}.` : 'Changed files were not available for this pull request.',
+    testNote,
+    `Recommended maintainer focus: ${review.checklist[0]}`,
+  ].join(' ')
+}
+
+export function analyzeMaintainerWorkload(stats: {
+  openIssues: number
+  openPullRequests: number
+  staleTotal: number
+}): MaintainerWorkload {
+  let score = 100
+  const signals: Signal[] = []
+
+  if (stats.openIssues >= 20) {
+    score -= 24
+    signals.push({ label: 'Heavy issue queue', detail: `${stats.openIssues} open issues may stretch maintainer response time.`, severity: 'critical' })
+  } else if (stats.openIssues >= 8) {
+    score -= 12
+    signals.push({ label: 'Growing issue queue', detail: `${stats.openIssues} open issues need regular triage.`, severity: 'warning' })
+  } else {
+    signals.push({ label: 'Issue queue is manageable', detail: `${stats.openIssues} open issue(s) sampled.`, severity: 'good' })
+  }
+
+  if (stats.openPullRequests >= 10) {
+    score -= 20
+    signals.push({ label: 'Large PR backlog', detail: `${stats.openPullRequests} open pull requests are waiting for review.`, severity: 'critical' })
+  } else if (stats.openPullRequests >= 4) {
+    score -= 10
+    signals.push({ label: 'PR backlog building', detail: `${stats.openPullRequests} open pull requests need review attention.`, severity: 'warning' })
+  } else if (stats.openPullRequests > 0) {
+    signals.push({ label: 'PR queue is light', detail: `${stats.openPullRequests} open pull request(s) sampled.`, severity: 'good' })
+  }
+
+  if (stats.staleTotal >= 5) {
+    score -= 22
+    signals.push({ label: 'Stale backlog is high', detail: `${stats.staleTotal} stale issue(s) or PR(s) need maintainer cleanup.`, severity: 'critical' })
+  } else if (stats.staleTotal > 0) {
+    score -= 10
+    signals.push({ label: 'Some stale work exists', detail: `${stats.staleTotal} stale item(s) have gone quiet for 30+ days.`, severity: 'warning' })
+  } else {
+    signals.push({ label: 'No stale backlog', detail: 'Recent issue and PR activity looks current.', severity: 'good' })
+  }
+
+  score = clamp(score)
+  const burden = score >= 75 ? 'low' : score >= 50 ? 'moderate' : 'high'
+
+  return {
+    score,
+    burden,
+    summary:
+      burden === 'low'
+        ? 'Maintainer workload looks sustainable with current open issue and PR volume.'
+        : burden === 'moderate'
+          ? 'Maintainer workload is rising—prioritize triage and review cadence.'
+          : 'Maintainer workload is heavy—focus on stale cleanup and response time.',
+    signals,
+  }
+}
+
+export function analyzeWorkflows(workflowContents: string[]): WorkflowAudit {
+  if (!workflowContents.length) {
+    return {
+      score: 0,
+      grade: 'F',
+      summary: 'No GitHub Actions workflows were found to audit.',
+      workflowsFound: 0,
+      signals: [{ label: 'No workflows detected', detail: 'Add CI workflows so quality and security checks run automatically.', severity: 'critical' }],
+      recommendations: ['Add a CI workflow for tests and linting.', 'Add a scheduled maintainer or security report workflow.'],
+    }
+  }
+
+  let score = 70
+  const signals: Signal[] = []
+  const recommendations = new Set<string>()
+  const combined = workflowContents.join('\n')
+
+  if (/permissions:\s*\n/i.test(combined)) {
+    score += 10
+    signals.push({ label: 'Explicit permissions', detail: 'Workflows declare permissions instead of relying on broad defaults.', severity: 'good' })
+  } else {
+    score -= 8
+    signals.push({ label: 'Missing permissions block', detail: 'Add least-privilege permissions to GitHub Actions workflows.', severity: 'warning' })
+    recommendations.add('Add a top-level permissions block with the minimum access each workflow needs.')
+  }
+
+  if (/@[^\s/]+\/(?:main|master)\b/.test(combined)) {
+    score -= 14
+    signals.push({ label: 'Floating action refs', detail: 'At least one workflow uses @main or @master action references.', severity: 'warning' })
+    recommendations.add('Pin GitHub Actions to tagged versions such as @v4 instead of floating branches.')
+  } else {
+    signals.push({ label: 'Pinned action versions', detail: 'Workflows appear to use tagged action versions.', severity: 'good' })
+  }
+
+  if (/workflow_dispatch|schedule:|pull_request:|push:/.test(combined)) {
+    score += 8
+    signals.push({ label: 'Useful workflow triggers', detail: 'Workflows include manual, scheduled, or code-event triggers.', severity: 'good' })
+  }
+
+  if (/codeql|dependency-review|npm audit|snyk|trivy|scorecard/i.test(combined)) {
+    score += 10
+    signals.push({ label: 'Security automation present', detail: 'Workflows include security scanning or dependency checks.', severity: 'good' })
+  } else {
+    recommendations.add('Add security automation such as dependency review or CodeQL.')
+  }
+
+  if (/actions\/upload-artifact|actions\/download-artifact/.test(combined)) {
+    score += 4
+    signals.push({ label: 'Artifact reporting', detail: 'Workflows publish artifacts that help maintainers inspect outputs.', severity: 'good' })
+  }
+
+  score = clamp(score)
+
+  return {
+    score,
+    grade: grade(score),
+    summary:
+      score >= 80
+        ? 'GitHub Actions workflows follow solid maintainer and security practices.'
+        : 'GitHub Actions workflows need tighter permissions, pinning, or security automation.',
+    workflowsFound: workflowContents.length,
+    signals,
+    recommendations: recommendations.size ? Array.from(recommendations) : ['Workflow setup looks healthy—keep monitoring action updates and permissions.'],
   }
 }
 

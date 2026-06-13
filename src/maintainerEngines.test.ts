@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import {
+  analyzeMaintainerWorkload,
   analyzeReadme,
   analyzeRepoHealth,
   analyzeSecurity,
+  analyzeWorkflows,
   detectStaleItems,
+  generatePrReviewSummary,
   generateReleasePlan,
   reviewPullRequest,
   triageIssue,
@@ -90,5 +93,30 @@ describe('maintainerEngines', () => {
 
     expect(withWorkflow.score).toBeGreaterThan(withoutWorkflow.score)
     expect(withWorkflow.signals.some((signal) => signal.label === 'Security workflow detected')).toBe(true)
+  })
+
+  it('generates a maintainer-friendly PR summary', () => {
+    const review = reviewPullRequest('Update auth middleware', 'Tightens token validation', 'src/auth.ts\nsrc/auth.test.ts')
+    const summary = generatePrReviewSummary('Update auth middleware', 'Tightens token validation', 'src/auth.ts\nsrc/auth.test.ts', review)
+
+    expect(summary).toContain('medium risk')
+    expect(summary).toContain('2 file(s)')
+  })
+
+  it('flags heavy maintainer workload from backlog signals', () => {
+    const workload = analyzeMaintainerWorkload({ openIssues: 24, openPullRequests: 11, staleTotal: 6 })
+
+    expect(workload.burden).toBe('high')
+    expect(workload.score).toBeLessThan(50)
+  })
+
+  it('audits GitHub Actions workflows for permissions and pinning', () => {
+    const audit = analyzeWorkflows([
+      'name: CI\non: push\npermissions:\n  contents: read\njobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4',
+    ])
+
+    expect(audit.workflowsFound).toBe(1)
+    expect(audit.score).toBeGreaterThan(70)
+    expect(audit.signals.some((signal) => signal.label === 'Explicit permissions')).toBe(true)
   })
 })
