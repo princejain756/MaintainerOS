@@ -1,5 +1,5 @@
 import type { GithubScanResult } from './githubClient'
-import type { IssueTriage, PrReview, ReleasePlan, ScoreCard } from './maintainerEngines'
+import type { IssueTriage, PrReview, ReleasePlan, ScoreCard, StaleSummary } from './maintainerEngines'
 
 export type MaintainerReportInput = {
   scan: GithubScanResult
@@ -9,11 +9,12 @@ export type MaintainerReportInput = {
   issueTriage: IssueTriage
   prReview: PrReview
   releasePlan: ReleasePlan
+  staleSummary: StaleSummary
   maintainerScore: number
 }
 
 export function formatMaintainerReport(input: MaintainerReportInput) {
-  const { scan, readmeScore, repoScore, securityScore, issueTriage, prReview, releasePlan, maintainerScore } = input
+  const { scan, readmeScore, repoScore, securityScore, issueTriage, prReview, releasePlan, staleSummary, maintainerScore } = input
   const generatedAt = new Date().toISOString()
 
   return `# MaintainerOS Report: ${scan.fullName}
@@ -36,11 +37,16 @@ Generated at: ${generatedAt}
 - Stars: ${scan.stars}
 - Open issues sampled: ${scan.openIssues}
 - Open pull requests sampled: ${scan.openPullRequests}
+- Stale backlog (${staleSummary.thresholdDays}+ days): ${staleSummary.totalStale}
 - Last pushed: ${scan.lastPushedAt || 'unknown'}
 
 ## Next Best Actions
 
 ${toList(scan.actions)}
+
+## Stale Backlog
+
+${formatStaleSummary(staleSummary)}
 
 ## Repository Health Signals
 
@@ -97,6 +103,65 @@ ${toList(releasePlan.checklist)}
 4. Keep CI, tests, changelog, and security policy active.
 5. Review stale issues and pull requests regularly.
 `
+}
+
+export function formatMaintainerReportJson(input: MaintainerReportInput) {
+  const { scan, readmeScore, repoScore, securityScore, issueTriage, prReview, releasePlan, staleSummary, maintainerScore } = input
+
+  return JSON.stringify(
+    {
+      generatedAt: new Date().toISOString(),
+      repository: {
+        fullName: scan.fullName,
+        url: `https://github.com/${scan.fullName}`,
+        stars: scan.stars,
+        openIssues: scan.openIssues,
+        openPullRequests: scan.openPullRequests,
+        lastPushedAt: scan.lastPushedAt,
+      },
+      scores: {
+        maintainerHealth: maintainerScore,
+        readmeQuality: readmeScore.score,
+        repoHealth: repoScore.score,
+        securityReadiness: securityScore.score,
+        prMergeReadiness: prReview.mergeReadiness,
+      },
+      grades: {
+        maintainerHealth: grade(maintainerScore),
+        readmeQuality: readmeScore.grade,
+        repoHealth: repoScore.grade,
+        securityReadiness: securityScore.grade,
+        prMergeReadiness: grade(prReview.mergeReadiness),
+      },
+      actions: scan.actions,
+      staleSummary,
+      signals: {
+        readme: readmeScore.signals,
+        repo: repoScore.signals,
+        security: securityScore.signals,
+        stale: staleSummary.signals,
+      },
+      issueTriage,
+      prReview,
+      releasePlan,
+      repoFiles: scan.repoFiles,
+    },
+    null,
+    2,
+  )
+}
+
+function formatStaleSummary(staleSummary: StaleSummary) {
+  if (staleSummary.totalStale === 0) {
+    return `- No stale issues or pull requests detected in the last ${staleSummary.thresholdDays} day window.`
+  }
+
+  const lines = staleSummary.signals.map((signal) => `- **${signal.label}** (${signal.severity}): ${signal.detail}`)
+  const staleItems = [...staleSummary.staleIssues, ...staleSummary.stalePullRequests]
+    .slice(0, 10)
+    .map((item) => `- ${item.type === 'issue' ? 'Issue' : 'PR'} #${item.number}: ${item.title} (${item.daysSinceUpdate} days)`)
+
+  return [...lines, '', ...staleItems].join('\n')
 }
 
 function formatSignals(card: ScoreCard) {

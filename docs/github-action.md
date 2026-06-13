@@ -42,6 +42,18 @@ Require a minimum score:
 npm run report -- --repo princejain756/MaintainerOS --output maintaineros-report.md --min-score 80
 ```
 
+Export JSON for automation pipelines:
+
+```bash
+npm run report -- --repo princejain756/MaintainerOS --output maintaineros-report.json --format json
+```
+
+Use a GitHub token for higher API limits in CI or local runs:
+
+```bash
+GITHUB_TOKEN=ghp_xxx npm run report -- --repo princejain756/MaintainerOS --output maintaineros-report.md
+```
+
 ## Copy into another repository
 
 A maintainer can copy the workflow into another project and use MaintainerOS as a reference implementation for repo health reporting.
