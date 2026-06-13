@@ -31,11 +31,15 @@ jobs:
         run: npm ci
 
       - name: Generate MaintainerOS report
-        run: npm run report -- --repo "$GITHUB_REPOSITORY" --output maintaineros-report.md --min-score "${{ github.event.inputs.min_score || '70' }}"
+        run: |
+          npm run report -- --repo "$GITHUB_REPOSITORY" --output maintaineros-report.md --min-score "${{ github.event.inputs.min_score || '70' }}"
+          npm run report -- --repo "$GITHUB_REPOSITORY" --output maintaineros-report.json --format json
 
       - name: Upload report artifact
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: maintaineros-report
-          path: maintaineros-report.md
+          path: |
+            maintaineros-report.md
+            maintaineros-report.json

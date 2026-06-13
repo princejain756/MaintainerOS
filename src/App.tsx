@@ -2,10 +2,13 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import './App.css'
 import { scanGithubRepository, setGithubToken } from './githubClient'
 import {
+  analyzeMaintainerWorkload,
   analyzeReadme,
   analyzeRepoHealth,
   analyzeSecurity,
+  analyzeWorkflows,
   detectStaleItems,
+  generatePrReviewSummary,
   generateReleasePlan,
   reviewPullRequest,
   triageIssue,
@@ -36,6 +39,7 @@ function App() {
   const [actions, setActions] = useState<string[]>([])
   const [openIssueItems, setOpenIssueItems] = useState<Array<{ number: number; title: string; updated_at: string }>>([])
   const [openPullItems, setOpenPullItems] = useState<Array<{ number: number; title: string; updated_at: string }>>([])
+  const [workflowContents, setWorkflowContents] = useState<string[]>([])
   const [repoStats, setRepoStats] = useState({ stars: 0, openIssues: 0, openPullRequests: 0, lastPushedAt: '' })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -61,6 +65,7 @@ function App() {
       setActions(result.actions)
       setOpenIssueItems(result.openIssueItems)
       setOpenPullItems(result.openPullItems)
+      setWorkflowContents(result.workflowContents)
       setRepoStats({
         stars: result.stars,
         openIssues: result.openIssues,
@@ -89,6 +94,19 @@ function App() {
   const prReview = useMemo(() => reviewPullRequest(prTitle, prBody, changedFiles), [prTitle, prBody, changedFiles])
   const releasePlan = useMemo(() => generateReleasePlan(commits), [commits])
   const staleSummary = useMemo(() => detectStaleItems(openIssueItems, openPullItems), [openIssueItems, openPullItems])
+  const workload = useMemo(
+    () => analyzeMaintainerWorkload({
+      openIssues: repoStats.openIssues,
+      openPullRequests: repoStats.openPullRequests,
+      staleTotal: staleSummary.totalStale,
+    }),
+    [repoStats.openIssues, repoStats.openPullRequests, staleSummary.totalStale],
+  )
+  const workflowAudit = useMemo(() => analyzeWorkflows(workflowContents), [workflowContents])
+  const prSummary = useMemo(
+    () => generatePrReviewSummary(prTitle, prBody, changedFiles, prReview),
+    [prTitle, prBody, changedFiles, prReview],
+  )
 
   const maintainerScore = useMemo(() => {
     if (loading || scanSource !== 'github') return 0
@@ -127,6 +145,7 @@ function App() {
         openPullRequests: repoStats.openPullRequests,
         openIssueItems,
         openPullItems,
+        workflowContents,
         stars: repoStats.stars,
         lastPushedAt: repoStats.lastPushedAt,
         actions,
@@ -136,8 +155,11 @@ function App() {
       securityScore,
       issueTriage,
       prReview,
+      prSummary,
       releasePlan,
       staleSummary,
+      workload,
+      workflowAudit,
       maintainerScore,
     })
 
@@ -255,6 +277,7 @@ function App() {
             )}
           </article>
           <StalePanel loading={loading} staleSummary={staleSummary} />
+          <WorkloadPanel loading={loading} workload={workload} />
         </section>
       )}
 
@@ -267,7 +290,12 @@ function App() {
 
       {activeTab === 'repo' && (
         <TwoColumn
-          left={<RepoChecklist repoFiles={repoFiles} />}
+          left={(
+            <div className="stack">
+              <RepoChecklist repoFiles={repoFiles} />
+              <WorkflowPanel loading={loading} workflowAudit={workflowAudit} />
+            </div>
+          )}
           right={<ScorePanel loading={loading} title="Repo Health Scanner" card={repoScore} />}
         />
       )}
@@ -314,6 +342,8 @@ function App() {
                 <span className="eyebrow">PR Review</span>
                 <h2>Risk: {prReview.risk}</h2>
                 <div className="readiness">Merge readiness <strong>{prReview.mergeReadiness}</strong></div>
+                <h3>Maintainer summary</h3>
+                <p>{prSummary}</p>
                 <h3>Review checklist</h3>
                 <ul className="action-list">{prReview.checklist.map((item) => <li key={item}>{item}</li>)}</ul>
                 <h3>Test suggestions</h3>
@@ -415,6 +445,64 @@ function RepoChecklist({ repoFiles }: { repoFiles: RepoFiles }) {
           </div>
         ))}
       </div>
+    </article>
+  )
+}
+
+function WorkloadPanel({
+  workload,
+  loading,
+}: {
+  workload: ReturnType<typeof analyzeMaintainerWorkload>
+  loading: boolean
+}) {
+  return (
+    <article className="panel">
+      <span className="eyebrow">Maintainer Workload</span>
+      <h2>{loading ? 'Scanning…' : `${workload.score}/100`}</h2>
+      <p>{loading ? 'Measuring open issue and PR pressure…' : `Burden level: ${workload.burden}`}</p>
+      <p>{loading ? '' : workload.summary}</p>
+      <div className="signal-list">
+        {workload.signals.map((signal) => (
+          <div className={`signal ${signal.severity}`} key={`${signal.label}-${signal.detail}`}>
+            <strong>{signal.label}</strong>
+            <span>{signal.detail}</span>
+          </div>
+        ))}
+      </div>
+    </article>
+  )
+}
+
+function WorkflowPanel({
+  workflowAudit,
+  loading,
+}: {
+  workflowAudit: ReturnType<typeof analyzeWorkflows>
+  loading: boolean
+}) {
+  return (
+    <article className="panel">
+      <span className="eyebrow">Workflow Audit</span>
+      <h2>{loading ? 'Scanning…' : `${workflowAudit.score}/100`}</h2>
+      <p>{loading ? 'Reading GitHub Actions workflows…' : workflowAudit.summary}</p>
+      <p>{loading ? '' : `${workflowAudit.workflowsFound} workflow file(s) audited`}</p>
+      <div className="signal-list">
+        {workflowAudit.signals.map((signal) => (
+          <div className={`signal ${signal.severity}`} key={`${signal.label}-${signal.detail}`}>
+            <strong>{signal.label}</strong>
+            <span>{signal.detail}</span>
+          </div>
+        ))}
+      </div>
+      {!loading && (
+        <>
+          <h3>Recommendations</h3>
+          <ul className="action-list">
+            {workflowAudit.recommendations.map((item) => <li key={item}>{item}</li>)}
+          </ul>
+        </>
+      )}
     </article>
   )
 }

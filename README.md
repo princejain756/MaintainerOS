@@ -25,6 +25,9 @@ MaintainerOS is maintainer infrastructure for the broader OSS ecosystem: a free 
 
 - **Live GitHub repository scanning** — fetches README, repo files, commits, issues, and pull requests from the public GitHub API
 - **Stale backlog detection** — flags open issues and PRs unchanged for 30+ days
+- **Maintainer workload analytics** — scores issue/PR pressure and stale backlog burden
+- **PR review summaries** — generates maintainer-ready pull request summaries from live PR data
+- **GitHub Actions workflow audit** — checks permissions, action pinning, and security automation
 - **Exportable JSON reports** — download structured maintainer health data from the dashboard or CLI
 - **Optional GitHub token support** — higher API limits for local use and CI (stored locally in browser only)
 - **MaintainerOS Report Workflow** — generates Markdown maintainer health reports in GitHub Actions on demand or weekly
@@ -179,10 +182,10 @@ See [docs/github-action.md](docs/github-action.md).
 - [x] Stale issue and stale PR detection
 - [x] Exportable JSON report format
 - [x] Security workflow and risky script detection improvements
-- [ ] AI-assisted PR review summaries
-- [ ] GitHub Actions workflow audit
-- [ ] Contributor onboarding score
-- [ ] Maintainer workload analytics
+- [x] PR review summaries
+- [x] GitHub Actions workflow audit
+- [x] Maintainer workload analytics
+- [ ] AI-assisted PR review summaries with API integration
 - [ ] GitHub App integration for automated issue and PR comments
 
 ## Example use cases

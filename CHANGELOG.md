@@ -2,6 +2,22 @@
 
 All notable changes to MaintainerOS are documented in this file.
 
+## [1.0.4] - 2026-06-13
+
+### Added
+
+- Maintainer workload analytics with burden scoring
+- PR review summary generator for maintainer-ready pull request notes
+- GitHub Actions workflow audit for permissions, pinning, and security automation
+- Workflow YAML fetching during live repository scans
+- JSON report artifact upload in the MaintainerOS GitHub Actions workflow
+
+### Changed
+
+- Dashboard overview now includes workload analytics
+- Repo health tab includes workflow audit recommendations
+- Markdown and JSON reports include workload, workflow audit, and PR summary sections
+
 ## [1.0.3] - 2026-06-13
 
 ### Added

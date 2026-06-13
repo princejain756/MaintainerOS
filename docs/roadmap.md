@@ -6,10 +6,16 @@
 - Maintainer health dashboard
 - README, repo health, and security scoring
 - Issue triage suggestions
-- PR review checklists
+- PR review checklists and maintainer summaries
 - Release notes generator
 - CLI report generator
 - GitHub Actions report workflow
+- Stale issue and stale PR detection
+- Exportable JSON report format
+- Optional GitHub token support
+- Security workflow and risky script detection
+- Maintainer workload analytics
+- GitHub Actions workflow audit
 - Production deployment at [maintaineros.prince.sh](https://maintaineros.prince.sh)
 
 ## Active roadmap
@@ -18,20 +24,20 @@ Track progress in [GitHub Issues](https://github.com/princejain756/MaintainerOS/
 
 ### Near term
 
-- [ ] GitHub token support for higher API limits ([#1](https://github.com/princejain756/MaintainerOS/issues/1))
-- [ ] Stale issue and stale PR detection ([#2](https://github.com/princejain756/MaintainerOS/issues/2))
-- [ ] Exportable JSON report format ([#3](https://github.com/princejain756/MaintainerOS/issues/3))
+- [x] GitHub token support for higher API limits ([#1](https://github.com/princejain756/MaintainerOS/issues/1))
+- [x] Stale issue and stale PR detection ([#2](https://github.com/princejain756/MaintainerOS/issues/2))
+- [x] Exportable JSON report format ([#3](https://github.com/princejain756/MaintainerOS/issues/3))
+- [x] Security workflow and risky script detection improvements ([#5](https://github.com/princejain756/MaintainerOS/issues/5))
 
 ### Medium term
 
-- [ ] AI-assisted PR review summaries ([#4](https://github.com/princejain756/MaintainerOS/issues/4))
-- [ ] Security workflow and risky script detection improvements ([#5](https://github.com/princejain756/MaintainerOS/issues/5))
-- [ ] GitHub Actions workflow audit
+- [ ] AI-assisted PR review summaries with API integration ([#4](https://github.com/princejain756/MaintainerOS/issues/4))
+- [x] GitHub Actions workflow audit
+- [x] Maintainer workload analytics
 - [ ] Contributor onboarding score
 
 ### Long term
 
-- [ ] Maintainer workload analytics
 - [ ] GitHub App integration for automated issue and PR comments
 - [ ] Exportable PDF/Markdown report bundles
 - [ ] Private repository scanning with secure token handling
