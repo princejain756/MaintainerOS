@@ -3,10 +3,13 @@ import { mkdir, writeFile } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 import { scanGithubRepository, setGithubToken } from '../src/githubClient.ts'
 import {
+  analyzeMaintainerWorkload,
   analyzeReadme,
   analyzeRepoHealth,
   analyzeSecurity,
+  analyzeWorkflows,
   detectStaleItems,
+  generatePrReviewSummary,
   generateReleasePlan,
   reviewPullRequest,
   triageIssue,
@@ -39,8 +42,15 @@ try {
   const securityScore = analyzeSecurity(scan.repoFiles)
   const issueTriage = triageIssue(scan.issueTitle, scan.issueBody)
   const prReview = reviewPullRequest(scan.prTitle, scan.prBody, scan.changedFiles)
+  const prSummary = generatePrReviewSummary(scan.prTitle, scan.prBody, scan.changedFiles, prReview)
   const releasePlan = generateReleasePlan(scan.commits)
   const staleSummary = detectStaleItems(scan.openIssueItems, scan.openPullItems)
+  const workload = analyzeMaintainerWorkload({
+    openIssues: scan.openIssues,
+    openPullRequests: scan.openPullRequests,
+    staleTotal: staleSummary.totalStale,
+  })
+  const workflowAudit = analyzeWorkflows(scan.workflowContents)
   const maintainerScore = Math.round((readmeScore.score + repoScore.score + securityScore.score + prReview.mergeReadiness) / 4)
 
   const reportInput = {
@@ -50,8 +60,11 @@ try {
     securityScore,
     issueTriage,
     prReview,
+    prSummary,
     releasePlan,
     staleSummary,
+    workload,
+    workflowAudit,
     maintainerScore,
   }
 
@@ -63,6 +76,8 @@ try {
   console.log(`MaintainerOS ${format} report written to ${outputPath}`)
   console.log(`Maintainer health score: ${maintainerScore}`)
   console.log(`Stale backlog: ${staleSummary.totalStale}`)
+  console.log(`Workload burden: ${workload.burden}`)
+  console.log(`Workflow audit score: ${workflowAudit.score}`)
 
   if (maintainerScore < minScore) {
     console.error(`Maintainer health score ${maintainerScore} is below required minimum ${minScore}.`)

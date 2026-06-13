@@ -21,6 +21,7 @@ export type GithubScanResult = {
   openPullRequests: number
   openIssueItems: Array<{ number: number; title: string; updated_at: string }>
   openPullItems: Array<{ number: number; title: string; updated_at: string }>
+  workflowContents: string[]
   stars: number
   lastPushedAt: string
   actions: string[]
@@ -196,6 +197,7 @@ async function scanGithubRepositoryInternal(input: string): Promise<GithubScanRe
     title: pull.title,
     updated_at: pull.updated_at,
   }))
+  const workflowFileContents = await fetchWorkflowContents(owner, repo, workflowContents)
 
   const actions = buildActions(repoFiles, openIssueItems, openPullItems)
 
@@ -215,6 +217,7 @@ async function scanGithubRepositoryInternal(input: string): Promise<GithubScanRe
     openPullRequests: openPullItems.length,
     openIssueItems,
     openPullItems,
+    workflowContents: workflowFileContents,
     stars: repoResponse.stargazers_count,
     lastPushedAt: repoResponse.pushed_at,
     actions,
@@ -287,6 +290,23 @@ async function fetchPullFiles(owner: string, repo: string, pullNumber: number) {
   } catch {
     return ''
   }
+}
+
+async function fetchWorkflowContents(owner: string, repo: string, items: GithubContentItem[]) {
+  const workflowFiles = items.filter((item) => item.type === 'file' && /\.ya?ml$/i.test(item.name))
+
+  const contents = await Promise.all(
+    workflowFiles.map(async (file) => {
+      try {
+        const payload = await githubFetch<{ content?: string; encoding?: string }>(`/repos/${owner}/${repo}/contents/${file.path}`)
+        return decodeGithubContent(payload.content ?? '', payload.encoding ?? 'base64')
+      } catch {
+        return ''
+      }
+    }),
+  )
+
+  return contents.filter(Boolean)
 }
 
 async function githubFetch<T>(path: string): Promise<T> {

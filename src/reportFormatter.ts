@@ -1,5 +1,5 @@
 import type { GithubScanResult } from './githubClient'
-import type { IssueTriage, PrReview, ReleasePlan, ScoreCard, StaleSummary } from './maintainerEngines'
+import type { IssueTriage, MaintainerWorkload, PrReview, ReleasePlan, ScoreCard, StaleSummary, WorkflowAudit } from './maintainerEngines'
 
 export type MaintainerReportInput = {
   scan: GithubScanResult
@@ -8,13 +8,29 @@ export type MaintainerReportInput = {
   securityScore: ScoreCard
   issueTriage: IssueTriage
   prReview: PrReview
+  prSummary: string
   releasePlan: ReleasePlan
   staleSummary: StaleSummary
+  workload: MaintainerWorkload
+  workflowAudit: WorkflowAudit
   maintainerScore: number
 }
 
 export function formatMaintainerReport(input: MaintainerReportInput) {
-  const { scan, readmeScore, repoScore, securityScore, issueTriage, prReview, releasePlan, staleSummary, maintainerScore } = input
+  const {
+    scan,
+    readmeScore,
+    repoScore,
+    securityScore,
+    issueTriage,
+    prReview,
+    prSummary,
+    releasePlan,
+    staleSummary,
+    workload,
+    workflowAudit,
+    maintainerScore,
+  } = input
   const generatedAt = new Date().toISOString()
 
   return `# MaintainerOS Report: ${scan.fullName}
@@ -30,6 +46,8 @@ Generated at: ${generatedAt}
 | Repo Health | ${repoScore.score} | ${repoScore.grade} |
 | Security Readiness | ${securityScore.score} | ${securityScore.grade} |
 | PR Merge Readiness | ${prReview.mergeReadiness} | ${grade(prReview.mergeReadiness)} |
+| Maintainer Workload | ${workload.score} | ${grade(workload.score)} |
+| Workflow Audit | ${workflowAudit.score} | ${workflowAudit.grade} |
 
 ## Repository Snapshot
 
@@ -38,6 +56,8 @@ Generated at: ${generatedAt}
 - Open issues sampled: ${scan.openIssues}
 - Open pull requests sampled: ${scan.openPullRequests}
 - Stale backlog (${staleSummary.thresholdDays}+ days): ${staleSummary.totalStale}
+- Workload burden: ${workload.burden}
+- Workflows audited: ${workflowAudit.workflowsFound}
 - Last pushed: ${scan.lastPushedAt || 'unknown'}
 
 ## Next Best Actions
@@ -47,6 +67,24 @@ ${toList(scan.actions)}
 ## Stale Backlog
 
 ${formatStaleSummary(staleSummary)}
+
+## Maintainer Workload
+
+- Burden level: ${workload.burden}
+- Workload score: ${workload.score}/100
+
+${workload.signals.map((signal) => `- **${signal.label}** (${signal.severity}): ${signal.detail}`).join('\n')}
+
+## GitHub Actions Workflow Audit
+
+- Workflows found: ${workflowAudit.workflowsFound}
+- Audit score: ${workflowAudit.score}/100 (${workflowAudit.grade})
+
+${workflowAudit.signals.map((signal) => `- **${signal.label}** (${signal.severity}): ${signal.detail}`).join('\n')}
+
+### Workflow recommendations
+
+${toList(workflowAudit.recommendations)}
 
 ## Repository Health Signals
 
@@ -74,6 +112,10 @@ ${formatSignals(securityScore)}
 
 - Risk level: ${prReview.risk}
 - Merge readiness: ${prReview.mergeReadiness}/100
+
+### Maintainer summary
+
+> ${prSummary}
 
 ### Review checklist
 
@@ -106,7 +148,20 @@ ${toList(releasePlan.checklist)}
 }
 
 export function formatMaintainerReportJson(input: MaintainerReportInput) {
-  const { scan, readmeScore, repoScore, securityScore, issueTriage, prReview, releasePlan, staleSummary, maintainerScore } = input
+  const {
+    scan,
+    readmeScore,
+    repoScore,
+    securityScore,
+    issueTriage,
+    prReview,
+    prSummary,
+    releasePlan,
+    staleSummary,
+    workload,
+    workflowAudit,
+    maintainerScore,
+  } = input
 
   return JSON.stringify(
     {
@@ -125,6 +180,8 @@ export function formatMaintainerReportJson(input: MaintainerReportInput) {
         repoHealth: repoScore.score,
         securityReadiness: securityScore.score,
         prMergeReadiness: prReview.mergeReadiness,
+        maintainerWorkload: workload.score,
+        workflowAudit: workflowAudit.score,
       },
       grades: {
         maintainerHealth: grade(maintainerScore),
@@ -132,14 +189,21 @@ export function formatMaintainerReportJson(input: MaintainerReportInput) {
         repoHealth: repoScore.grade,
         securityReadiness: securityScore.grade,
         prMergeReadiness: grade(prReview.mergeReadiness),
+        maintainerWorkload: grade(workload.score),
+        workflowAudit: workflowAudit.grade,
       },
       actions: scan.actions,
       staleSummary,
+      workload,
+      workflowAudit,
+      prSummary,
       signals: {
         readme: readmeScore.signals,
         repo: repoScore.signals,
         security: securityScore.signals,
         stale: staleSummary.signals,
+        workload: workload.signals,
+        workflow: workflowAudit.signals,
       },
       issueTriage,
       prReview,
