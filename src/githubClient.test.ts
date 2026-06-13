@@ -17,7 +17,7 @@ describe('githubClient', () => {
     const files = mapInventoryToRepoFiles(
       ['README.md', 'LICENSE', 'package.json', 'package-lock.json'],
       ['CONTRIBUTING.md', 'PULL_REQUEST_TEMPLATE.md', 'ISSUE_TEMPLATE'],
-      ['ci.yml'],
+      ['ci.yml', 'codeql-analysis.yml'],
       '# MaintainerOS',
       '{"name":"maintaineros"}',
     )
@@ -27,6 +27,7 @@ describe('githubClient', () => {
     expect(files.issueTemplates).toBe(true)
     expect(files.pullRequestTemplate).toBe(true)
     expect(files.ciWorkflow).toBe(true)
+    expect(files.securityWorkflow).toBe(true)
     expect(files.lockfile).toBe(true)
     expect(files.codeOfConduct).toBe(false)
   })

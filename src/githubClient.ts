@@ -19,9 +19,15 @@ export type GithubScanResult = {
   changedFiles: string
   openIssues: number
   openPullRequests: number
+  openIssueItems: Array<{ number: number; title: string; updated_at: string }>
+  openPullItems: Array<{ number: number; title: string; updated_at: string }>
   stars: number
   lastPushedAt: string
   actions: string[]
+}
+
+export type GithubScanOptions = {
+  token?: string
 }
 
 type GithubContentItem = {
@@ -42,15 +48,18 @@ type GithubRepoResponse = {
 }
 
 type GithubIssue = {
+  number: number
   title: string
   body: string | null
+  updated_at: string
   pull_request?: unknown
 }
 
 type GithubPullRequest = {
+  number: number
   title: string
   body: string | null
-  number: number
+  updated_at: string
 }
 
 type GithubCommit = {
@@ -64,6 +73,15 @@ type GithubPullFile = {
 }
 
 const API_BASE = 'https://api.github.com'
+let activeGithubToken: string | undefined
+
+export function setGithubToken(token?: string) {
+  activeGithubToken = token?.trim() || undefined
+}
+
+export function getGithubToken() {
+  return activeGithubToken
+}
 
 export function parseGithubUrl(input: string): GithubRepoRef | null {
   const trimmed = input.trim().replace(/\/+$/, '')
@@ -107,12 +125,26 @@ export function mapInventoryToRepoFiles(
     issueTemplates: has(['issue_template']),
     pullRequestTemplate: has(['pull_request_template']),
     ciWorkflow: workflowNames.some((name) => /\.ya?ml$/i.test(name)),
+    securityWorkflow: workflowNames.some((name) =>
+      /codeql|dependabot|dependency-review|security|audit|snyk|trivy|scorecard|osv/i.test(name),
+    ),
     packageJson,
     lockfile: has(['package-lock.json', 'yarn.lock', 'pnpm-lock.yaml', 'bun.lockb', 'npm-shrinkwrap.json']),
   }
 }
 
-export async function scanGithubRepository(input: string): Promise<GithubScanResult> {
+export async function scanGithubRepository(input: string, options: GithubScanOptions = {}): Promise<GithubScanResult> {
+  const previousToken = activeGithubToken
+  if (options.token) setGithubToken(options.token)
+
+  try {
+    return await scanGithubRepositoryInternal(input)
+  } finally {
+    setGithubToken(previousToken)
+  }
+}
+
+async function scanGithubRepositoryInternal(input: string): Promise<GithubScanResult> {
   const ref = parseGithubUrl(input)
   if (!ref) {
     throw new Error('Enter a valid GitHub repository URL like https://github.com/owner/repo')
@@ -156,8 +188,16 @@ export async function scanGithubRepository(input: string): Promise<GithubScanRes
   const latestIssue = issues.find((issue) => !issue.pull_request)
   const latestPull = pulls[0]
   const changedFiles = latestPull ? await fetchPullFiles(owner, repo, latestPull.number) : ''
+  const openIssueItems = issues
+    .filter((issue) => !issue.pull_request)
+    .map((issue) => ({ number: issue.number, title: issue.title, updated_at: issue.updated_at }))
+  const openPullItems = pulls.map((pull) => ({
+    number: pull.number,
+    title: pull.title,
+    updated_at: pull.updated_at,
+  }))
 
-  const actions = buildActions(repoFiles)
+  const actions = buildActions(repoFiles, openIssueItems, openPullItems)
 
   return {
     owner,
@@ -171,26 +211,45 @@ export async function scanGithubRepository(input: string): Promise<GithubScanRes
     prTitle: latestPull?.title ?? 'No open pull requests found',
     prBody: latestPull?.body ?? 'This repository currently has no open pull requests to review.',
     changedFiles: changedFiles || 'No changed files available',
-    openIssues: issues.filter((issue) => !issue.pull_request).length,
-    openPullRequests: pulls.length,
+    openIssues: openIssueItems.length,
+    openPullRequests: openPullItems.length,
+    openIssueItems,
+    openPullItems,
     stars: repoResponse.stargazers_count,
     lastPushedAt: repoResponse.pushed_at,
     actions,
   }
 }
 
-function buildActions(files: RepoFiles) {
+function buildActions(
+  files: RepoFiles,
+  openIssueItems: Array<{ number: number; title: string; updated_at: string }>,
+  openPullItems: Array<{ number: number; title: string; updated_at: string }>,
+) {
   const actions: string[] = []
   if (!files.changelog) actions.push('Add a changelog so release history is easier to inspect.')
   if (!files.codeOfConduct) actions.push('Add a code of conduct for clearer community expectations.')
   if (!files.contributing) actions.push('Add a contributing guide so new contributors know how to help.')
   if (!files.securityPolicy) actions.push('Add SECURITY.md so vulnerability reports have a clear path.')
+  if (!files.securityWorkflow) actions.push('Add a security workflow such as CodeQL or dependency review.')
   if (!files.issueTemplates) actions.push('Add issue templates to improve bug report quality.')
   if (!files.pullRequestTemplate) actions.push('Add a pull request template for more consistent reviews.')
   if (!files.ciWorkflow) actions.push('Add CI workflows so quality checks run automatically.')
   if (!files.lockfile && files.packageJson) actions.push('Add a lockfile for reproducible dependency installs.')
+
+  const staleThresholdDays = 30
+  const now = new Date()
+  const staleIssues = openIssueItems.filter((issue) => daysSince(issue.updated_at, now) >= staleThresholdDays).length
+  const stalePulls = openPullItems.filter((pull) => daysSince(pull.updated_at, now) >= staleThresholdDays).length
+  if (staleIssues) actions.push(`Review ${staleIssues} stale open issue(s) that have not been updated in ${staleThresholdDays}+ days.`)
+  if (stalePulls) actions.push(`Review ${stalePulls} stale open pull request(s) waiting for maintainer attention.`)
+
   if (actions.length === 0) actions.push('Repository maintainer infrastructure looks strong. Focus on release cadence and contributor response time.')
   return actions
+}
+
+function daysSince(updatedAt: string, now: Date) {
+  return Math.floor((now.getTime() - new Date(updatedAt).getTime()) / (1000 * 60 * 60 * 24))
 }
 
 async function fetchContents(owner: string, repo: string, path: string) {
@@ -231,14 +290,26 @@ async function fetchPullFiles(owner: string, repo: string, pullNumber: number) {
 }
 
 async function githubFetch<T>(path: string): Promise<T> {
-  const response = await fetch(`${API_BASE}${path}`, {
-    headers: {
-      Accept: 'application/vnd.github+json',
-    },
-  })
+  const headers: Record<string, string> = {
+    Accept: 'application/vnd.github+json',
+  }
+
+  if (activeGithubToken) {
+    headers.Authorization = `Bearer ${activeGithubToken}`
+  }
+
+  const response = await fetch(`${API_BASE}${path}`, { headers })
+
+  if (response.status === 401) {
+    throw new Error('GitHub token is invalid or expired. Remove it or provide a valid personal access token.')
+  }
 
   if (response.status === 403) {
-    throw new Error('GitHub API rate limit reached. Wait a minute and try again, or scan fewer repositories in a short period.')
+    throw new Error(
+      activeGithubToken
+        ? 'GitHub API rate limit reached for this token. Wait a minute and try again.'
+        : 'GitHub API rate limit reached. Wait a minute, add an optional GitHub token, or scan fewer repositories in a short period.',
+    )
   }
 
   if (response.status === 404) {
