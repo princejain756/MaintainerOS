@@ -23,8 +23,25 @@ export type RepoFiles = {
   issueTemplates?: boolean
   pullRequestTemplate?: boolean
   ciWorkflow?: boolean
+  securityWorkflow?: boolean
   packageJson?: string
   lockfile?: boolean
+}
+
+export type StaleItem = {
+  type: 'issue' | 'pull_request'
+  number: number
+  title: string
+  daysSinceUpdate: number
+  updatedAt: string
+}
+
+export type StaleSummary = {
+  thresholdDays: number
+  staleIssues: StaleItem[]
+  stalePullRequests: StaleItem[]
+  totalStale: number
+  signals: Signal[]
 }
 
 export type IssueTriage = {
@@ -143,12 +160,82 @@ export function analyzeRepoHealth(files: RepoFiles): ScoreCard {
   }
 }
 
+const riskyScriptPatterns = [
+  /curl\s+.*\|\s*sh/i,
+  /wget\s+.*\|\s*sh/i,
+  /chmod\s+777/i,
+  /rm\s+-rf\s+\//i,
+  /eval\s*\(/i,
+  /base64\s+-d.*\|.*sh/i,
+]
+
+export function detectStaleItems(
+  issues: Array<{ number: number; title: string; updated_at: string }>,
+  pulls: Array<{ number: number; title: string; updated_at: string }>,
+  thresholdDays = 30,
+  now = new Date(),
+): StaleSummary {
+  const toStale = (
+    type: StaleItem['type'],
+    item: { number: number; title: string; updated_at: string },
+  ): StaleItem | null => {
+    const updated = new Date(item.updated_at)
+    const daysSinceUpdate = Math.floor((now.getTime() - updated.getTime()) / (1000 * 60 * 60 * 24))
+    if (daysSinceUpdate < thresholdDays) return null
+    return {
+      type,
+      number: item.number,
+      title: item.title,
+      daysSinceUpdate,
+      updatedAt: item.updated_at,
+    }
+  }
+
+  const staleIssues = issues.map((issue) => toStale('issue', issue)).filter((item): item is StaleItem => Boolean(item))
+  const stalePullRequests = pulls.map((pull) => toStale('pull_request', pull)).filter((item): item is StaleItem => Boolean(item))
+  const totalStale = staleIssues.length + stalePullRequests.length
+  const signals: Signal[] = []
+
+  if (totalStale === 0) {
+    signals.push({
+      label: 'No stale backlog detected',
+      detail: `Open issues and pull requests were updated within the last ${thresholdDays} days.`,
+      severity: 'good',
+    })
+  } else {
+    if (staleIssues.length) {
+      signals.push({
+        label: 'Stale issues detected',
+        detail: `${staleIssues.length} open issue(s) unchanged for ${thresholdDays}+ days.`,
+        severity: staleIssues.length >= 3 ? 'critical' : 'warning',
+      })
+    }
+    if (stalePullRequests.length) {
+      signals.push({
+        label: 'Stale pull requests detected',
+        detail: `${stalePullRequests.length} open PR(s) unchanged for ${thresholdDays}+ days.`,
+        severity: stalePullRequests.length >= 2 ? 'critical' : 'warning',
+      })
+    }
+  }
+
+  return {
+    thresholdDays,
+    staleIssues,
+    stalePullRequests,
+    totalStale,
+    signals,
+  }
+}
+
 export function analyzeSecurity(files: RepoFiles): ScoreCard {
   const packageJson = parsePackageJson(files.packageJson)
   const scripts = packageJson?.scripts ?? {}
   const dependencies = Object.keys(packageJson?.dependencies ?? {})
   const devDependencies = Object.keys(packageJson?.devDependencies ?? {})
-  const riskyScript = Object.values(scripts).some((script) => /curl|wget|chmod\s+777|rm\s+-rf\s+\//.test(String(script)))
+  const riskyScript = Object.values(scripts).some((script) =>
+    riskyScriptPatterns.some((pattern) => pattern.test(String(script))),
+  )
 
   let score = 100
   const signals: Signal[] = []
@@ -165,7 +252,22 @@ export function analyzeSecurity(files: RepoFiles): ScoreCard {
 
   if (riskyScript) {
     score -= 24
-    signals.push({ label: 'Risky package script', detail: 'Review scripts for destructive shell commands.', severity: 'critical' })
+    signals.push({ label: 'Risky package script', detail: 'Review scripts for destructive shell commands or remote pipe-to-shell patterns.', severity: 'critical' })
+  }
+
+  if (!files.securityWorkflow) {
+    score -= 12
+    signals.push({
+      label: 'No security workflow detected',
+      detail: 'Add CodeQL, dependency review, or similar CI security checks.',
+      severity: 'warning',
+    })
+  } else {
+    signals.push({
+      label: 'Security workflow detected',
+      detail: 'Automated security checks appear configured in CI.',
+      severity: 'good',
+    })
   }
 
   if (dependencies.length + devDependencies.length > 45) {

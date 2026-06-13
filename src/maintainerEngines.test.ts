@@ -3,6 +3,7 @@ import {
   analyzeReadme,
   analyzeRepoHealth,
   analyzeSecurity,
+  detectStaleItems,
   generateReleasePlan,
   reviewPullRequest,
   triageIssue,
@@ -66,5 +67,28 @@ describe('maintainerEngines', () => {
 
     expect(result.score).toBeLessThan(70)
     expect(result.signals.some((signal) => signal.severity === 'critical')).toBe(true)
+  })
+
+  it('detects stale issues and pull requests', () => {
+    const now = new Date('2026-06-07T00:00:00Z')
+    const result = detectStaleItems(
+      [{ number: 12, title: 'Old bug', updated_at: '2026-04-01T00:00:00Z' }],
+      [{ number: 44, title: 'Stale PR', updated_at: '2026-03-15T00:00:00Z' }],
+      30,
+      now,
+    )
+
+    expect(result.totalStale).toBe(2)
+    expect(result.staleIssues).toHaveLength(1)
+    expect(result.stalePullRequests).toHaveLength(1)
+    expect(result.signals.some((signal) => signal.label === 'Stale issues detected')).toBe(true)
+  })
+
+  it('rewards security workflow detection', () => {
+    const withoutWorkflow = analyzeSecurity({ securityPolicy: true, lockfile: true })
+    const withWorkflow = analyzeSecurity({ securityPolicy: true, lockfile: true, securityWorkflow: true })
+
+    expect(withWorkflow.score).toBeGreaterThan(withoutWorkflow.score)
+    expect(withWorkflow.signals.some((signal) => signal.label === 'Security workflow detected')).toBe(true)
   })
 })
